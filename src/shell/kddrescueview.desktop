@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=kddrescueview
+Icon=kddrescueview
+# TODO: replace with your custom supported mime types
+MimeType=text/plain;
+Exec=kddrescueview %U
+Terminal=false

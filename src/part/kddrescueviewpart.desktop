@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Service
+Name=kddrescueviewPart
+Icon=kddrescueview
+# TODO: replace with your custom supported mime types
+MimeType=text/plain;
+X-KDE-ServiceTypes=KParts/ReadOnlyPart,KParts/ReadWritePart
+X-KDE-Library=kddrescueviewpart
