@@ -21,7 +21,7 @@
 #define KDDRESCUEVIEWPART_H
 
 // KF headers
-#include <KParts/ReadWritePart>
+#include <KParts/ReadOnlyPart>
 
 class QTextEdit;
 class QWidget;
@@ -31,7 +31,7 @@ class QTextDocument;
 /**
  * @short kddrescueview Part
  */
-class kddrescueviewPart : public KParts::ReadWritePart
+class kddrescueviewPart : public KParts::ReadOnlyPart
 {
     Q_OBJECT
 
@@ -46,30 +46,15 @@ public:
      */
     ~kddrescueviewPart() override;
 
-    /**
-     * Reimplemented to update the internal UI
-     */
-    void setReadWrite(bool rw) override;
-
-    /**
-     * Reimplemented to disable and enable Save action
-     */
-    void setModified(bool modified) override;
 
 protected: // KParts::ReadWritePart API
     bool openFile() override;
-    bool saveFile() override;
 
 private:
     void setupActions();
 
-private Q_SLOTS:
-    void fileSave();
-    void fileSaveAs();
-
 private:
     QTextEdit* m_textEditWidget;
-    QAction* m_saveAction;
     QTextDocument* m_textDocument;
 };
 

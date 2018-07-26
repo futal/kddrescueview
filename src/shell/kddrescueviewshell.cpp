@@ -20,7 +20,7 @@
 #include "kddrescueviewshell.h"
 
 // KF headers
-#include <KParts/ReadWritePart>
+#include <KParts/ReadOnlyPart>
 #include <KPluginLoader>
 #include <KPluginFactory>
 #include <KActionCollection>
@@ -56,7 +56,7 @@ kddrescueviewShell::kddrescueviewShell()
         return;
     }
 
-    m_part = factory->create<KParts::ReadWritePart>(this);
+    m_part = factory->create<KParts::ReadOnlyPart>(this);
 
     if (m_part) {
         // integrate and setup
@@ -86,7 +86,7 @@ void kddrescueviewShell::setupActions()
 void kddrescueviewShell::fileNew()
 {
     // open a new window if the document is _not_ in its initial state
-    if (!m_part->url().isValid() || m_part->isModified()) {
+    if (!m_part->url().isValid()) {
         (new kddrescueviewShell)->show();
     };
 }
@@ -97,7 +97,7 @@ void kddrescueviewShell::fileOpen()
 
     if (url.isValid()) {
         // open a new window if the document is _not_ in its initial state
-        if (!m_part->url().isValid() || m_part->isModified()) {
+        if (!m_part->url().isValid()) {
             // open the file in a new window
             auto window = new kddrescueviewShell;
             window->loadDocument(url);

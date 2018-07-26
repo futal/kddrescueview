@@ -37,7 +37,7 @@ K_PLUGIN_FACTORY(kddrescueviewPartFactory, registerPlugin<kddrescueviewPart>();)
 
 
 kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, const QVariantList& /*args*/)
-    : KParts::ReadWritePart(parent)
+    : KParts::ReadOnlyPart(parent)
 {
     // set component data
     // the first arg must be the same as the subdirectory into which the part's rc file is installed
@@ -60,10 +60,7 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     // TODO: replace with your custom data model
     m_textDocument = new QTextDocument(this);
     m_textEditWidget->setDocument(m_textDocument);
-    setModified(false);
 
-    // set part read-write by default
-    setReadWrite(true);
 }
 
 kddrescueviewPart::~kddrescueviewPart()
@@ -72,33 +69,6 @@ kddrescueviewPart::~kddrescueviewPart()
 
 void kddrescueviewPart::setupActions()
 {
-    m_saveAction = KStandardAction::save(this, &kddrescueviewPart::fileSave, actionCollection());
-    KStandardAction::saveAs(this, &kddrescueviewPart::fileSaveAs, actionCollection());
-}
-
-void kddrescueviewPart::setReadWrite(bool rw)
-{
-    // update internal UI
-    m_textEditWidget->setReadOnly(!rw);
-
-    // connect to modified state of data model
-    if (rw) {
-        connect(m_textDocument, &QTextDocument::modificationChanged,
-                this,     &kddrescueviewPart::setModified);
-    } else {
-        disconnect(m_textDocument, &QTextDocument::modificationChanged,
-                   this,     &kddrescueviewPart::setModified);
-    }
-
-    ReadWritePart::setReadWrite(rw);
-}
-
-void kddrescueviewPart::setModified(bool modified)
-{
-    // update actions
-    m_saveAction->setEnabled(modified);
-
-    ReadWritePart::setModified(modified);
 }
 
 bool kddrescueviewPart::openFile()
@@ -122,46 +92,7 @@ bool kddrescueviewPart::openFile()
     return true;
 }
 
-bool kddrescueviewPart::saveFile()
-{
-    // protect against wrong calls, as recommended in the ReadWritePart API dox
-    if (!isReadWrite()) {
-        return false;
-    }
 
-    QFile file(localFilePath());
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        return false;
-    }
-
-    // TODO: replace with your custom file writing
-    QTextStream stream(&file);
-    stream << m_textDocument->toPlainText();
-
-    file.close();
-
-    // set current state in the data model as saved
-    m_textDocument->setModified(false);
-
-    return true;
-}
-
-void kddrescueviewPart::fileSave()
-{
-    if (url().isValid()) {
-        save();
-    } else {
-        fileSaveAs();
-    }
-}
-
-void kddrescueviewPart::fileSaveAs()
-{
-    const QUrl url = QFileDialog::getSaveFileUrl();
-    if (url.isValid()) {
-        saveAs(url);
-    }
-}
 
 // needed for K_PLUGIN_FACTORY
 #include <kddrescueviewpart.moc>

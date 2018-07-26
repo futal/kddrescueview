@@ -24,7 +24,7 @@
 #include <KParts/MainWindow>
 
 namespace KParts {
-class ReadWritePart;
+class ReadOnlyPart;
 }
 
 /**
@@ -58,7 +58,7 @@ private:
     void setupActions();
 
 private:
-    KParts::ReadWritePart* m_part;
+    KParts::ReadOnlyPart* m_part;
 };
 
 #endif // KDDRESCUEVIEW_H
