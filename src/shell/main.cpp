@@ -39,12 +39,13 @@ int main(int argc, char **argv)
     KAboutData aboutData(QStringLiteral("kddrescueview"),
         i18n("kddrescueview"),
         QStringLiteral("0.1"),
-        i18n("A KPart Application"),
+        i18n("KPart viewer for GNU ddrescue map files"),
         KAboutLicense::GPL,
         i18n("Copyright 2018 Adrien Cordonnier"));
     aboutData.addAuthor(i18n("Adrien Cordonnier"), i18n("Author"), QStringLiteral("adrien.cordonnier@gmail.com"));
-    aboutData.setOrganizationDomain("example.org");
-    aboutData.setDesktopFileName(QStringLiteral("org.example.kddrescueview"));
+    aboutData.addAuthor(i18n("Martin Bittermann"), i18n("Inspirator for the excellent ddrescueview written in Object Pascal"), QStringLiteral(""));
+    aboutData.setOrganizationDomain("kde.org");
+    aboutData.setDesktopFileName(QStringLiteral("org.kde.kddrescueview"));
 
     KAboutData::setApplicationData(aboutData);
     app.setWindowIcon(QIcon::fromTheme(QStringLiteral("kddrescueview")));
@@ -53,7 +54,7 @@ int main(int argc, char **argv)
     parser.addHelpOption();
     parser.addVersionOption();
     aboutData.setupCommandLine(&parser);
-    parser.addPositionalArgument(QStringLiteral("urls"), i18n("Document(s) to load."), QStringLiteral("[urls...]"));
+    parser.addPositionalArgument(QStringLiteral("urls"), i18n("GNU ddrescue map file(s) to load."), QStringLiteral("[urls...]"));
 
     parser.process(app);
     aboutData.processCommandLine(&parser);
