@@ -23,10 +23,10 @@
 // KF headers
 #include <KParts/ReadOnlyPart>
 
-class QListView;
+class QTableView;
 class QWidget;
 class QAction;
-class QStringListModel;
+class QStandardItemModel;
 
 /**
  * @short kddrescueview Part
@@ -47,15 +47,15 @@ public:
     ~kddrescueviewPart() override;
 
 
-protected: // KParts::ReadWritePart API
+protected: // KParts::ReadOnlyPart API
     bool openFile() override;
 
 private:
     void setupActions();
 
 private:
-    QListView* m_view;
-    QStringListModel* m_model;
+    QTableView* m_view;
+    QStandardItemModel* m_model;
 };
 
 #endif // KDDRESCUEVIEWPART_H

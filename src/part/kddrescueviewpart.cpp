@@ -30,8 +30,9 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QTextStream>
-#include <QListView>
-#include <QStringListModel>
+#include <QTableView>
+#include <QStandardItemModel>
+#include <QtDebug>
 
 K_PLUGIN_FACTORY(kddrescueviewPartFactory, registerPlugin<kddrescueviewPart>();)
 
@@ -48,7 +49,7 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
 
     // set internal UI
     // TODO: replace with your custom UI
-    m_view = new QListView(parentWidget);
+    m_view = new QTableView(parentWidget);
     setWidget(m_view);
 
     // set KXMLUI resource file
@@ -59,7 +60,7 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
 
     // starting with empty data model, not modified at begin
     // TODO: replace with your custom data model
-    m_model = new QStringListModel(this);
+    m_model = new QStandardItemModel(this);
     m_view->setModel(m_model);
 
 }
@@ -78,19 +79,20 @@ bool kddrescueviewPart::openFile()
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return false;
     }
-
+  
     QTextStream stream(&file);
-    QStringList list;
     while (!stream.atEnd()) {
         QString line;
         line = stream.readLine();
         line = line.trimmed();
         
         if( line.isEmpty() ) {
+            qDebug() << "Empty line";
             continue;
         }
                 
         if( line.startsWith("# Command line:") ) {
+            qDebug() << "Comment with command line";
             /* try to find if the commandline had a specific block size option */
             /*
             match = re.search( "(-b|--block-size=)\s*(?P<blocksize>[0-9]+)", line);
@@ -104,6 +106,7 @@ bool kddrescueviewPart::openFile()
         }
         
         if( line.startsWith('#') ) {
+            qDebug() << "Comment line";
             /* comment line */
             continue;
         }
@@ -112,6 +115,7 @@ bool kddrescueviewPart::openFile()
         tokens = line.split(QRegExp("\\s+"));
         
         if( tokens.size() == 2 ) {
+            qDebug() << "Current read position and status";
             /* current read: position and status */
             /*
             if( rescue_status == Null ) {
@@ -125,6 +129,38 @@ bool kddrescueviewPart::openFile()
         }
         
         /* block informations: position, size and status */
+        if( tokens.size() != 3 ) {
+            qDebug() << "Line does not have three tokens";
+            // TODO: throw exception for invalid line
+            continue;
+        }
+        
+        // qDebug() << "Line has three tokens:" << tokens;
+        
+        bool conversion_success = true;
+        // QString::toInt(&success, base=0) guesses the base automatically
+        QStandardItem block_position;
+        block_position.setData(tokens[0].toLongLong(&conversion_success, 0));
+        qDebug() << "block position: " << block_position.data();
+        if( !conversion_success ) {
+            // TODO: throw exception if conversion fails
+            qDebug() << "Position conversion to integer failed";
+        }
+        
+        QStandardItem block_size;
+        block_size.setData(tokens[1].toLongLong(&conversion_success, 0));
+        qDebug() << "block size: " << block_size.data();
+        if( !conversion_success ) {
+            // TODO: throw exception if conversion fails
+            qDebug() << "Size conversion to integer failed";
+        }
+        
+        QStandardItem block_status;
+        block_status.setData(tokens[2]);
+        qDebug() << "block status: " << block_status.data();
+        QList<QStandardItem*> items = { &block_position, &block_size, &block_status };
+        qDebug() << items;
+        m_model->appendRow(items);
         /*
         log.append( (int(tokens[0], 0), int(tokens[1], 0), tokens[2]) )
         // update the total sizes for each status
@@ -141,12 +177,8 @@ bool kddrescueviewPart::openFile()
             rescue_status.errors += 1;
             logEntry += 1;
         */
-        
-        list << line;
     }
 
-    m_model->setStringList(list);
-    
     file.close();
 
     return true;
