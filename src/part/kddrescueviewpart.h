@@ -23,10 +23,10 @@
 // KF headers
 #include <KParts/ReadOnlyPart>
 
-class QTextEdit;
+class QListView;
 class QWidget;
 class QAction;
-class QTextDocument;
+class QStringListModel;
 
 /**
  * @short kddrescueview Part
@@ -54,8 +54,8 @@ private:
     void setupActions();
 
 private:
-    QTextEdit* m_textEditWidget;
-    QTextDocument* m_textDocument;
+    QListView* m_view;
+    QStringListModel* m_model;
 };
 
 #endif // KDDRESCUEVIEWPART_H

@@ -30,8 +30,8 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QTextStream>
-#include <QTextEdit>
-#include <QTextDocument>
+#include <QListView>
+#include <QStringListModel>
 
 K_PLUGIN_FACTORY(kddrescueviewPartFactory, registerPlugin<kddrescueviewPart>();)
 
@@ -43,12 +43,13 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     // the first arg must be the same as the subdirectory into which the part's rc file is installed
     KAboutData aboutData("kddrescueviewpart", i18n("kddrescueviewPart"), QStringLiteral("0.1"));
     aboutData.addAuthor(i18n("Adrien Cordonnier"), i18n("Author"), QStringLiteral("adrien.cordonnier@gmail.com"));
+    aboutData.addAuthor(i18n("Martin Bittermann"), i18n("Inspirator"), QStringLiteral(""));
     setComponentData(aboutData);
 
     // set internal UI
     // TODO: replace with your custom UI
-    m_textEditWidget = new QTextEdit(parentWidget);
-    setWidget(m_textEditWidget);
+    m_view = new QListView(parentWidget);
+    setWidget(m_view);
 
     // set KXMLUI resource file
     setXMLFile(QStringLiteral("kddrescueviewpartui.rc"));
@@ -58,8 +59,8 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
 
     // starting with empty data model, not modified at begin
     // TODO: replace with your custom data model
-    m_textDocument = new QTextDocument(this);
-    m_textEditWidget->setDocument(m_textDocument);
+    m_model = new QStringListModel(this);
+    m_view->setModel(m_model);
 
 }
 
@@ -78,16 +79,75 @@ bool kddrescueviewPart::openFile()
         return false;
     }
 
-    // TODO: replace with your custom file reading
     QTextStream stream(&file);
-    QString text;
+    QStringList list;
     while (!stream.atEnd()) {
-        text += stream.readLine() + QLatin1Char('\n');
+        QString line;
+        line = stream.readLine();
+        line = line.trimmed();
+        
+        if( line.isEmpty() ) {
+            continue;
+        }
+                
+        if( line.startsWith("# Command line:") ) {
+            /* try to find if the commandline had a specific block size option */
+            /*
+            match = re.search( "(-b|--block-size=)\s*(?P<blocksize>[0-9]+)", line);
+            if( match ) {
+                device_block_size = int(match.group("blocksize"));
+            } else {
+                device_block_size = 512;
+            }
+             */
+            continue;
+        }
+        
+        if( line.startsWith('#') ) {
+            /* comment line */
+            continue;
+        }
+        
+        QStringList tokens;
+        tokens = line.split(QRegExp("\\s+"));
+        
+        if( tokens.size() == 2 ) {
+            /* current read: position and status */
+            /*
+            if( rescue_status == Null ) {
+                rescue_status = { position: int(tokens[0], 0), status: tokens[1] )
+                // int(x, 16) for hexadecimal, int(x, 0) to guess the base automatically
+            } else {
+                MainForm.AppLog.Lines.append('Parser: found more than one line with 2 tokens.')
+            }
+             */
+            continue;
+        }
+        
+        /* block informations: position, size and status */
+        /*
+        log.append( (int(tokens[0], 0), int(tokens[1], 0), tokens[2]) )
+        // update the total sizes for each status
+        case = {
+                '?': rescue_status.nontried,
+                '+': rescue_status.rescued,
+                '*': rescue_status.nontrimmed,
+                '/': rescue_status.nonsplit,
+                '-': rescue_status.bad,
+        }
+        x = case.get(log[logEntry].status);
+        x += log[logEntry].length;
+        if( log[logEntry].status in ['-', '*', '/'] ) {
+            rescue_status.errors += 1;
+            logEntry += 1;
+        */
+        
+        list << line;
     }
 
+    m_model->setStringList(list);
+    
     file.close();
-
-    m_textDocument->setPlainText(text);
 
     return true;
 }
