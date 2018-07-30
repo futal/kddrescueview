@@ -24,17 +24,10 @@ public slots:
 
 
 
-public:
-    enum Shape { Line, Points, Polyline, Polygon, Rect, RoundedRect, Ellipse, Arc,
-                 Chord, Pie, Path, Text, Pixmap };
-
-    QSize minimumSizeHint() const override;
-    QSize sizeHint() const override;
-
 public slots:
     void setPen(const QPen &pen);
     void setBrush(const QBrush &brush);
-
+    void setGridSize(const int step = 8);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -42,6 +35,7 @@ protected:
 private:
     QPen pen;
     QBrush brush;
+    int grid_step;
 };
 
 #endif // BLOCKWIDGET_H
