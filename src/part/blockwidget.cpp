@@ -49,7 +49,4 @@ void BlockWidget::paintEvent(QPaintEvent * /* event */)
             painter.restore();
         }
     }
-    painter.drawText(30,30, QString("width: %1, columns: %2, w:%3").arg(width()).arg(columns).arg(columns*grid_step+1));
-    painter.drawText(30,60, QString("height: %1, rows: %2, h:%3").arg(height()).arg(rows).arg(rows*grid_step+1));
-    
 }

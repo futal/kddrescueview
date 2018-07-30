@@ -2,6 +2,8 @@ add_definitions(-DTRANSLATION_DOMAIN=\"kddrescueviewpart\")
 
 set(kddrescueview_PART_SRCS
    kddrescueviewpart.cpp
+   rescuemap.cpp
+   rescuestatus.cpp
    blockwidget.cpp
 )
 
