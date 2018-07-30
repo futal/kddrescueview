@@ -20,10 +20,11 @@
 #ifndef KDDRESCUEVIEWPART_H
 #define KDDRESCUEVIEWPART_H
 
+#include "blockwidget.h"
+
 // KF headers
 #include <KParts/ReadOnlyPart>
 
-class QTableView;
 class QWidget;
 class QAction;
 class QStandardItemModel;
@@ -54,7 +55,7 @@ private:
     void setupActions();
 
 private:
-    QTableView* m_view;
+    BlockWidget* m_view;
     QStandardItemModel* m_model;
 };
 

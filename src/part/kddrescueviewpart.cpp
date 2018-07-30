@@ -18,6 +18,7 @@
  */
 
 #include "kddrescueviewpart.h"
+#include "blockwidget.h"
 
 // KF headers
 #include <KPluginFactory>
@@ -30,7 +31,6 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QTextStream>
-#include <QTableView>
 #include <QStandardItemModel>
 #include <QtDebug>
 
@@ -49,7 +49,7 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
 
     // set internal UI
     // TODO: replace with your custom UI
-    m_view = new QTableView(parentWidget);
+    m_view = new BlockWidget(parentWidget);
     setWidget(m_view);
 
     // set KXMLUI resource file
@@ -61,8 +61,10 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     // starting with empty data model, not modified at begin
     // TODO: replace with your custom data model
     m_model = new QStandardItemModel(this);
-    m_view->setModel(m_model);
-
+    /* TODO: draw on QWidget based on the model
+     * in kddrescueviewpart.h, it was QtableView* m_view;
+     * m_view->setModel(m_model); 
+     */
 }
 
 kddrescueviewPart::~kddrescueviewPart()
@@ -87,12 +89,12 @@ bool kddrescueviewPart::openFile()
         line = line.trimmed();
         
         if( line.isEmpty() ) {
-            qDebug() << "Empty line";
+            // qDebug() << "Empty line";
             continue;
         }
                 
         if( line.startsWith("# Command line:") ) {
-            qDebug() << "Comment with command line";
+            // qDebug() << "Comment with command line";
             /* try to find if the commandline had a specific block size option */
             /*
             match = re.search( "(-b|--block-size=)\s*(?P<blocksize>[0-9]+)", line);
@@ -106,7 +108,7 @@ bool kddrescueviewPart::openFile()
         }
         
         if( line.startsWith('#') ) {
-            qDebug() << "Comment line";
+            // qDebug() << "Comment line";
             /* comment line */
             continue;
         }
@@ -115,7 +117,7 @@ bool kddrescueviewPart::openFile()
         tokens = line.split(QRegExp("\\s+"));
         
         if( tokens.size() == 2 ) {
-            qDebug() << "Current read position and status";
+            // qDebug() << "Current read position and status";
             /* current read: position and status */
             /*
             if( rescue_status == Null ) {
@@ -139,27 +141,27 @@ bool kddrescueviewPart::openFile()
         
         bool conversion_success = true;
         // QString::toInt(&success, base=0) guesses the base automatically
-        QStandardItem block_position;
-        block_position.setData(tokens[0].toLongLong(&conversion_success, 0));
-        qDebug() << "block position: " << block_position.data();
+        QStandardItem* block_position = new QStandardItem(tokens[0]);
+        block_position->setData(tokens[0].toLongLong(&conversion_success, 0));
+        // qDebug() << "block position: " << block_position.data();
         if( !conversion_success ) {
             // TODO: throw exception if conversion fails
             qDebug() << "Position conversion to integer failed";
         }
         
-        QStandardItem block_size;
-        block_size.setData(tokens[1].toLongLong(&conversion_success, 0));
-        qDebug() << "block size: " << block_size.data();
+        QStandardItem* block_size  = new QStandardItem(tokens[1]);
+        block_size->setData(tokens[1].toLongLong(&conversion_success, 0));
+        // qDebug() << "block size: " << block_size.data();
         if( !conversion_success ) {
             // TODO: throw exception if conversion fails
             qDebug() << "Size conversion to integer failed";
         }
         
-        QStandardItem block_status;
-        block_status.setData(tokens[2]);
-        qDebug() << "block status: " << block_status.data();
-        QList<QStandardItem*> items = { &block_position, &block_size, &block_status };
-        qDebug() << items;
+        QStandardItem* block_status = new QStandardItem(tokens[2]);
+        block_status->setData(tokens[2]);
+        // qDebug() << "block status: " << block_status.data();
+        QList<QStandardItem*> items = { block_position, block_size, block_status };
+        
         m_model->appendRow(items);
         /*
         log.append( (int(tokens[0], 0), int(tokens[1], 0), tokens[2]) )
@@ -179,6 +181,10 @@ bool kddrescueviewPart::openFile()
         */
     }
 
+    for(int i=0; i < m_model->rowCount(); ++i) {
+        qDebug() << m_model->data(m_model->index(i, 0)) << m_model->data(m_model->index(i, 1)) << m_model->data(m_model->index(i, 2));
+    }
+    
     file.close();
 
     return true;

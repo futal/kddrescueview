@@ -2,6 +2,7 @@ add_definitions(-DTRANSLATION_DOMAIN=\"kddrescueviewpart\")
 
 set(kddrescueview_PART_SRCS
    kddrescueviewpart.cpp
+   blockwidget.cpp
 )
 
 add_library(kddrescueviewpart MODULE ${kddrescueview_PART_SRCS})
