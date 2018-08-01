@@ -21,13 +21,14 @@
 #define KDDRESCUEVIEWPART_H
 
 #include "blockwidget.h"
+#include "rescuestatus.h"
+#include "rescuemap.h"
 
 // KF headers
 #include <KParts/ReadOnlyPart>
 
 class QWidget;
 class QAction;
-class QStandardItemModel;
 
 /**
  * @short kddrescueview Part
@@ -56,7 +57,8 @@ private:
 
 private:
     BlockWidget* m_view;
-    QStandardItemModel* m_model;
+    RescueMap* m_rescue_map;
+    RescueStatus m_rescue_status;
 };
 
 #endif // KDDRESCUEVIEWPART_H

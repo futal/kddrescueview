@@ -19,6 +19,8 @@
 
 #include "kddrescueviewpart.h"
 #include "blockwidget.h"
+#include "rescuestatus.h"
+#include "rescuemap.h"
 
 // KF headers
 #include <KPluginFactory>
@@ -33,6 +35,7 @@
 #include <QTextStream>
 #include <QStandardItemModel>
 #include <QtDebug>
+#include <QRegularExpression>
 
 K_PLUGIN_FACTORY(kddrescueviewPartFactory, registerPlugin<kddrescueviewPart>();)
 
@@ -60,7 +63,8 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
 
     // starting with empty data model, not modified at begin
     // TODO: replace with your custom data model
-    m_model = new QStandardItemModel(this);
+    m_rescue_map = new RescueMap(this);
+    m_rescue_status = RescueStatus();
     /* TODO: draw on QWidget based on the model
      * in kddrescueviewpart.h, it was QtableView* m_view;
      * m_view->setModel(m_model); 
@@ -77,115 +81,174 @@ void kddrescueviewPart::setupActions()
 
 bool kddrescueviewPart::openFile()
 {
+    /* Parse a GNU ddrescue map file
+     * Map file structure is described at https://www.gnu.org/software/ddrescue/manual/ddrescue_manual.html#Mapfile-structure
+     */
+    
     QFile file(localFilePath());
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return false;
     }
-  
+
     QTextStream stream(&file);
     while (!stream.atEnd()) {
         QString line;
         line = stream.readLine();
         line = line.trimmed();
         
+        // qDebug() << line;
+        
         if( line.isEmpty() ) {
-            // qDebug() << "Empty line";
+            /* qDebug() << "Empty line"; */
             continue;
         }
                 
         if( line.startsWith("# Command line:") ) {
-            // qDebug() << "Comment with command line";
-            /* try to find if the commandline had a specific block size option */
-            /*
-            match = re.search( "(-b|--block-size=)\s*(?P<blocksize>[0-9]+)", line);
-            if( match ) {
-                device_block_size = int(match.group("blocksize"));
+            /* try to find if the command line had a specific block size option */
+            QRegularExpression re("(-b|--block-size=)\\s*(?P<blocksize>[0-9]+)");
+            QRegularExpressionMatch match = re.match(line);
+            QString device_block_size;
+            if( match.hasMatch() ) {
+                device_block_size = match.captured("blocksize");
             } else {
-                device_block_size = 512;
+                device_block_size = "512";
             }
-             */
+            /* qDebug() << "Command line"; */
             continue;
         }
         
         if( line.startsWith('#') ) {
-            // qDebug() << "Comment line";
-            /* comment line */
+            /* comment line without a command line */
+            /* TODO: parse comment lines with ddrescue_version, start_time, current_time, human_readable_status */
+            /* qDebug() << "Comment line"; */
             continue;
         }
         
+        /* Non-comment lines can be:
+         *  - The former status line with two tokens: current_pos current_status
+         *  - The new status line with three tokens: current_pos current_status current_pass
+         *  - A block information with three tokens: pos size status
+         * Their type is:
+         *  - non-negative long long integer for current_pos
+         *  - Operation (one ASCII character) for current_status 
+         *  - positive decimal integer for current_pass
+         *  - non-negative long long integer for position
+         *  - non-negative long long integer for size
+         *  - Status (one ASCII character) for status
+         * Hence three patterns can be found:
+         *  - (long long int) (char) : former status line
+         *  - (long long int) (char) (int) : new status line
+         *  - (long long int) (long long int) (char) : block information
+         */
         QStringList tokens;
-        tokens = line.split(QRegExp("\\s+"));
+        tokens = line.split(QRegularExpression("\\s+"));
+        bool conversion_ok;
         
-        if( tokens.size() == 2 ) {
-            // qDebug() << "Current read position and status";
-            /* current read: position and status */
-            /*
-            if( rescue_status == Null ) {
-                rescue_status = { position: int(tokens[0], 0), status: tokens[1] )
-                // int(x, 16) for hexadecimal, int(x, 0) to guess the base automatically
-            } else {
-                MainForm.AppLog.Lines.append('Parser: found more than one line with 2 tokens.')
-            }
-             */
+        /* former status line pattern: (long long current_position) (Operation char current_operation) (optional comment) */
+        if( tokens.count() == 2 || (tokens.count() > 2 && tokens[2].startsWith("#")) )
+        if( tokens[0].toLongLong(&conversion_ok, 0) >= 0 ) /* 0: guess the base */
+        if( conversion_ok )
+        if(     tokens[1] == OperationCharacter[Operation::copying]
+                || tokens[1] == OperationCharacter[Operation::trimming]
+                || tokens[1] == OperationCharacter[Operation::scraping]
+                || tokens[1] == OperationCharacter[Operation::retrying]
+                || tokens[1] == OperationCharacter[Operation::filling]
+                || tokens[1] == OperationCharacter[Operation::generating]
+                || tokens[1] == OperationCharacter[Operation::finished]
+                )
+        if( m_rescue_status.currentOperation() != Operation::unknown )
+        {
+            m_rescue_status.setCurrentPosition(tokens[1].toLongLong(&conversion_ok, 0));
+            m_rescue_status.setCurrentOperation(tokens[1]);
             continue;
+            /* qDebug() << "Two-token status line"; */ 
         }
-        
-        /* block informations: position, size and status */
-        if( tokens.size() != 3 ) {
-            qDebug() << "Line does not have three tokens";
-            // TODO: throw exception for invalid line
-            continue;
-        }
-        
-        // qDebug() << "Line has three tokens:" << tokens;
-        
-        bool conversion_success = true;
-        // QString::toInt(&success, base=0) guesses the base automatically
-        QStandardItem* block_position = new QStandardItem(tokens[0]);
-        block_position->setData(tokens[0].toLongLong(&conversion_success, 0));
-        // qDebug() << "block position: " << block_position.data();
-        if( !conversion_success ) {
-            // TODO: throw exception if conversion fails
-            qDebug() << "Position conversion to integer failed";
-        }
-        
-        QStandardItem* block_size  = new QStandardItem(tokens[1]);
-        block_size->setData(tokens[1].toLongLong(&conversion_success, 0));
-        // qDebug() << "block size: " << block_size.data();
-        if( !conversion_success ) {
-            // TODO: throw exception if conversion fails
-            qDebug() << "Size conversion to integer failed";
-        }
-        
-        QStandardItem* block_status = new QStandardItem(tokens[2]);
-        block_status->setData(tokens[2]);
-        // qDebug() << "block status: " << block_status.data();
-        QList<QStandardItem*> items = { block_position, block_size, block_status };
-        
-        m_model->appendRow(items);
         /*
-        log.append( (int(tokens[0], 0), int(tokens[1], 0), tokens[2]) )
-        // update the total sizes for each status
-        case = {
-                '?': rescue_status.nontried,
-                '+': rescue_status.rescued,
-                '*': rescue_status.nontrimmed,
-                '/': rescue_status.nonsplit,
-                '-': rescue_status.bad,
-        }
-        x = case.get(log[logEntry].status);
-        x += log[logEntry].length;
-        if( log[logEntry].status in ['-', '*', '/'] ) {
-            rescue_status.errors += 1;
-            logEntry += 1;
+        else qDebug() << "current operation already set";
+        else qDebug() << "second token not an operation character";
+        else qDebug() << "first token cannot be converted to a position";
+        else qDebug() << "position < 0";
+        else qDebug() << "not a two-token line";
         */
+        
+        /* status line pattern: (long long current_position) (Operation char current_operation) (int current_pass) (optional comment) */
+        if( tokens.count() == 3 || (tokens.count() > 3 && tokens[3].startsWith("#")) )
+        if( tokens[0].toLongLong(&conversion_ok, 0) >= 0 ) /* 0: guess the base for position */
+        if( conversion_ok )
+        if(    tokens[1] == OperationCharacter[Operation::copying]
+                || tokens[1] == OperationCharacter[Operation::trimming]
+                || tokens[1] == OperationCharacter[Operation::scraping]
+                || tokens[1] == OperationCharacter[Operation::retrying]
+                || tokens[1] == OperationCharacter[Operation::filling]
+                || tokens[1] == OperationCharacter[Operation::generating]
+                || tokens[1] == OperationCharacter[Operation::finished]
+                )
+        if( m_rescue_status.currentOperation() == Operation::unknown )
+        if( tokens[2].toInt(&conversion_ok, 10) >= 1 )/* 10: pass number must be in base 10 */
+        if( conversion_ok )
+        {
+            m_rescue_status.setCurrentPosition(tokens[0].toLongLong(&conversion_ok, 0));
+            m_rescue_status.setCurrentOperation(tokens[1]);
+            m_rescue_status.setCurrentPass(tokens[2].toInt(&conversion_ok, 10));
+            /* qDebug() << "Status line"; */
+            continue;
+        }
+        /*
+        else qDebug() << "pass number conversion failed";
+        else qDebug() << "pass number < 1";
+        else qDebug() << "current operation already set";
+        else qDebug() << "not an operation character";
+        else qDebug() << "position conversion failed";
+        else qDebug() << "position < 0";
+        else qDebug() << "not a three-token line";
+        */
+        
+
+        /* block information pattern: (long long current_position) (Operation char current_operation) (int current_pass) (optional comment) */
+        if( tokens.count() == 3 || (tokens.count() > 3 && tokens[3].startsWith("#")) )
+        if( tokens[0].toLongLong(&conversion_ok, 0) >= 0 ) // == m_rescue_map->lastPosition() + m_rescue_map->lastSize() /* 0: guess the base for position */
+        if( conversion_ok )
+        if( tokens[1].toLongLong(&conversion_ok, 0) > 0 ) /* 0: guess the base for size */
+        if( conversion_ok )
+        if(     tokens[2] == StatusCharacter[Status::nontried]
+                || tokens[2] == StatusCharacter[Status::nontrimmed]
+                || tokens[2] == StatusCharacter[Status::nonscraped]
+                || tokens[2] == StatusCharacter[Status::badsector]
+                || tokens[2] == StatusCharacter[Status::rescued]
+                )
+        {
+            QStandardItem* block_position = new QStandardItem(tokens[0]);
+            QStandardItem* block_size = new QStandardItem(tokens[1]);
+            QStandardItem* block_status = new QStandardItem(tokens[2]);
+            QList<QStandardItem*> items = { block_position, block_size, block_status };
+            m_rescue_map->appendRow(items);
+            m_rescue_map->addRescueBlock( 
+                                            tokens[0].toLongLong(&conversion_ok, 0),
+                                            tokens[1].toLongLong(&conversion_ok, 0),
+                                            tokens[2]
+                                        );
+            // TODO: convert to proper data type
+            /* qDebug() << "Data block line"; */
+            continue;
+        }
+        /*
+        else qDebug() << "third token not a status character";
+        else qDebug() << "second token cannot be converted to a size";
+        else qDebug() << "size < 0";
+        else qDebug() << "first token cannot be converted to a position";
+        else qDebug() << "position < 0";
+        else qDebug() << "not a three-token line";
+        */
+        qDebug() << "Parsing error: the line does not match a status or block information pattern";
+        qDebug() << QString("Error line: %1").arg(line);
+        file.close();
+        return false;
+        /* TODO: identify parsing errors */
     }
 
-    for(int i=0; i < m_model->rowCount(); ++i) {
-        qDebug() << m_model->data(m_model->index(i, 0)) << m_model->data(m_model->index(i, 1)) << m_model->data(m_model->index(i, 2));
-    }
-    
     file.close();
+    
+    // m_rescue_map->print();
 
     return true;
 }

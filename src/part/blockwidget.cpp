@@ -1,4 +1,5 @@
 #include "blockwidget.h"
+#include "rescuemap.h"
 
 #include <QPainter>
 
@@ -29,7 +30,7 @@ void BlockWidget::setGridSize(const int step){
 
 void BlockWidget::paintEvent(QPaintEvent * /* event */)
 {
-    QRect rect(grid_step, grid_step, grid_step, grid_step);
+    QRect square(grid_step, grid_step, grid_step, grid_step);
     
     // the qwidget width and height appears to continue under the window border for 8 pixels
     int window_border = 8;
@@ -38,6 +39,8 @@ void BlockWidget::paintEvent(QPaintEvent * /* event */)
     int rows = (height() - 1 - window_border)/grid_step;
     
     QPainter painter(this);
+    
+    
     painter.setPen(pen);
     painter.setBrush(brush);
     
@@ -45,7 +48,7 @@ void BlockWidget::paintEvent(QPaintEvent * /* event */)
         for (int row = 0; row < rows; ++row) {
             painter.save();
             painter.translate(column*grid_step, row*grid_step);
-            painter.drawRect(rect);
+            painter.drawRect(square);
             painter.restore();
         }
     }
