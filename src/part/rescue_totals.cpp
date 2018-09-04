@@ -1,6 +1,6 @@
 /*
- * <one line to give the program's name and a brief idea of what it does.>
- * Copyright 2018  <copyright holder> <email>
+ * Kddrescueview - A KPart application to visualise GNU ddrescue mapfiles
+ * Copyright 2018  Adrien Cordonnier <adrien.cordonnier@gmail.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as

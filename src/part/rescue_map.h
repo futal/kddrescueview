@@ -1,5 +1,5 @@
 /*
- * Kddrescueview - A KPart to visualise GNU ddrescue mapfiles
+ * Kddrescueview - A KPart application to visualise GNU ddrescue mapfiles
  * Copyright 2018  Adrien Cordonnier <adrien.cordonnier@gmail.com>
  * 
  * This program is free software; you can redistribute it and/or
