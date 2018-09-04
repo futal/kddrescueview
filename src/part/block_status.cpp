@@ -19,50 +19,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KDDRESCUEVIEWPART_H
-#define KDDRESCUEVIEWPART_H
+#include "block_status.h"
 
-#include "rescue_map_widget.h"
-#include "rescue_status.h"
-#include "rescue_map.h"
-
-// KF headers
-#include <KParts/ReadOnlyPart>
-
-class QWidget;
-class QAction;
-class QTableView;
-
-/**
- * @short kddrescueview Part
- */
-class kddrescueviewPart : public KParts::ReadOnlyPart
+QVariant Status::data(int role) const 
 {
-    Q_OBJECT
-
-public:
-    /**
-     * Default constructor, with arguments as expected by KPluginFactory
-     */
-    kddrescueviewPart(QWidget* parentWidget, QObject* parent, const QVariantList& arg);
-
-    /**
-     * Destructor
-     */
-    ~kddrescueviewPart() override;
-
-
-protected: // KParts::ReadOnlyPart API
-    bool openFile() override;
-
-private:
-    void setupActions();
-
-private:
-    QWidget* m_view;  // either BlockWidget* or QTableView*
-    
-    RescueMap* m_rescue_map;
-    RescueStatus m_rescue_status;
-};
-
-#endif // KDDRESCUEVIEWPART_H
+    if( role == Qt::DisplayRole || role == Qt::UserRole ) {
+        return m_status;
+    }
+    return QStandardItem::data(role);
+}

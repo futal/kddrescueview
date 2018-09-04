@@ -19,50 +19,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KDDRESCUEVIEWPART_H
-#define KDDRESCUEVIEWPART_H
+#ifndef RESCUE_MAP_WIDGET_H
+#define RESCUE_MAP_WIDGET_H
 
-#include "rescue_map_widget.h"
-#include "rescue_status.h"
-#include "rescue_map.h"
+#include <QWidget>
 
-// KF headers
-#include <KParts/ReadOnlyPart>
 
-class QWidget;
-class QAction;
-class QTableView;
 
-/**
- * @short kddrescueview Part
- */
-class kddrescueviewPart : public KParts::ReadOnlyPart
+#include <QBrush>
+#include <QPen>
+#include <QPixmap>
+#include <QTableView>
+
+class QStandardItemModel;
+
+
+class BlockWidget : public QWidget
 {
     Q_OBJECT
-
 public:
-    /**
-     * Default constructor, with arguments as expected by KPluginFactory
-     */
-    kddrescueviewPart(QWidget* parentWidget, QObject* parent, const QVariantList& arg);
+    explicit BlockWidget(QWidget *parent = nullptr);
+    void setModel(QStandardItemModel* model = nullptr);
+public slots:
+    void setGridSize(const int step = 8);
 
-    /**
-     * Destructor
-     */
-    ~kddrescueviewPart() override;
-
-
-protected: // KParts::ReadOnlyPart API
-    bool openFile() override;
+protected:
+    void paintEvent(QPaintEvent *event);
 
 private:
-    void setupActions();
-
-private:
-    QWidget* m_view;  // either BlockWidget* or QTableView*
-    
-    RescueMap* m_rescue_map;
-    RescueStatus m_rescue_status;
+    int m_grid_step;
+    QStandardItemModel* m_model;
 };
 
-#endif // KDDRESCUEVIEWPART_H
+#endif // RESCUE_MAP_WIDGET_H

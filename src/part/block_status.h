@@ -19,50 +19,39 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KDDRESCUEVIEWPART_H
-#define KDDRESCUEVIEWPART_H
+#ifndef BLOCK_STATUS_H
+#define BLOCK_STATUS_H
 
-#include "rescue_map_widget.h"
-#include "rescue_status.h"
-#include "rescue_map.h"
-
-// KF headers
-#include <KParts/ReadOnlyPart>
-
-class QWidget;
-class QAction;
-class QTableView;
+#include <QStandardItemModel>
+#include <QMap>
 
 /**
- * @short kddrescueview Part
+ * Type for the recovery status of a block. It is used:
+ * - in data block lines of the mapfile.
+ * cf. https://www.gnu.org/software/ddrescue/manual/ddrescue_manual.html#Mapfile-structure
  */
-class kddrescueviewPart : public KParts::ReadOnlyPart
+
+static const QMap<QString, QString> statuses {
+    { "?", "non-tried block" },
+    { "*", "failed block non-trimmed" },
+    { "/", "failed block non-scraped" },
+    { "-", "failed block bad-sector(s)" },
+    { "+", "block recovered" },
+}; 
+
+class Status : public QStandardItem
 {
-    Q_OBJECT
-
 public:
-    /**
-     * Default constructor, with arguments as expected by KPluginFactory
-     */
-    kddrescueviewPart(QWidget* parentWidget, QObject* parent, const QVariantList& arg);
-
-    /**
-     * Destructor
-     */
-    ~kddrescueviewPart() override;
-
-
-protected: // KParts::ReadOnlyPart API
-    bool openFile() override;
+    Status(QString status = "unknown") : m_status(status) { }
+//    virtual ~Status() {}
+    virtual QStandardItem* clone() const { return new Status(m_status); }
+    QVariant data(int role = Qt::UserRole+1 ) const;
+    QString toStr() const { return statuses.value(m_status, "Unknown block status"); }
+    static bool isValid(QString s) { return statuses.count(s); }
 
 private:
-    void setupActions();
-
-private:
-    QWidget* m_view;  // either BlockWidget* or QTableView*
-    
-    RescueMap* m_rescue_map;
-    RescueStatus m_rescue_status;
+    QString m_status;
 };
 
-#endif // KDDRESCUEVIEWPART_H
+
+#endif // BLOCK_STATUS_H

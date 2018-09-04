@@ -19,50 +19,37 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KDDRESCUEVIEWPART_H
-#define KDDRESCUEVIEWPART_H
+#ifndef RESCUE_STATUS_H
+#define RESCUE_STATUS_H
 
-#include "rescue_map_widget.h"
-#include "rescue_status.h"
-#include "rescue_map.h"
-
-// KF headers
-#include <KParts/ReadOnlyPart>
-
-class QWidget;
-class QAction;
-class QTableView;
+#include "block_position.h"
+#include "block_size.h"
+#include "rescue_operation.h"
+class RescueMap;
+class QString;
 
 /**
- * @short kddrescueview Part
+ * Class for status line operation in the map file. It stores:
+ * - the current position being tried in the input file;
+ * - the current operation being tried in the input file;
+ * - the current pass (since ddrescue version ?.?.?).
+ * cf. https://www.gnu.org/software/ddrescue/manual/ddrescue_manual.html#Mapfile-structure
  */
-class kddrescueviewPart : public KParts::ReadOnlyPart
+class RescueStatus
 {
-    Q_OBJECT
-
 public:
-    /**
-     * Default constructor, with arguments as expected by KPluginFactory
-     */
-    kddrescueviewPart(QWidget* parentWidget, QObject* parent, const QVariantList& arg);
-
-    /**
-     * Destructor
-     */
-    ~kddrescueviewPart() override;
-
-
-protected: // KParts::ReadOnlyPart API
-    bool openFile() override;
+    RescueStatus();
+    Position currentPosition() const { return m_current_position; }
+    bool setCurrentPosition(long long int position);
+    QString currentOperation() const { return m_current_operation.toStr(); }
+    bool setCurrentOperation(QString operation);
+    int currentPass() const { return m_current_pass; }
+    bool setCurrentPass(int pass);
 
 private:
-    void setupActions();
-
-private:
-    QWidget* m_view;  // either BlockWidget* or QTableView*
-    
-    RescueMap* m_rescue_map;
-    RescueStatus m_rescue_status;
+    Position m_current_position;
+    Operation m_current_operation;
+    int m_current_pass;
 };
 
-#endif // KDDRESCUEVIEWPART_H
+#endif // RESCUE_STATUS_H

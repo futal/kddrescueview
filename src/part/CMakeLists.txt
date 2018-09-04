@@ -2,9 +2,14 @@ add_definitions(-DTRANSLATION_DOMAIN=\"kddrescueviewpart\")
 
 set(kddrescueview_PART_SRCS
    kddrescueviewpart.cpp
-   rescuemap.cpp
-   rescuestatus.cpp
-   blockwidget.cpp
+   block_position.cpp
+   block_size.cpp
+   block_status.cpp
+   rescue_map.cpp
+   rescue_status.cpp
+   rescue_totals.cpp
+   rescue_map_widget.cpp
+   
 )
 
 add_library(kddrescueviewpart MODULE ${kddrescueview_PART_SRCS})

@@ -1,26 +1,30 @@
 /*
- *   Copyright (C) 2018 by Adrien Cordonnier <adrien.cordonnier@gmail.com>
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, write to the
- *   Free Software Foundation, Inc.,
- *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA .
+ * Kddrescueview - A KPart to visualise GNU ddrescue mapfiles
+ * Copyright 2018  Adrien Cordonnier <adrien.cordonnier@gmail.com>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License or (at your option) version 3 or any later version
+ * accepted by the membership of KDE e.V. (or its successor approved
+ * by the membership of KDE e.V.), which shall act as a proxy
+ * defined in Section 14 of version 3 of the license.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "kddrescueviewpart.h"
-#include "blockwidget.h"
-#include "rescuestatus.h"
-#include "rescuemap.h"
+#include "rescue_map_widget.h"
+#include "rescue_status.h"
+#include "rescue_map.h"
+#include "block_status.h"
+#include "block_position.h"
 
 // KF headers
 #include <KPluginFactory>
@@ -36,6 +40,9 @@
 #include <QStandardItemModel>
 #include <QtDebug>
 #include <QRegularExpression>
+#include <QTableView>
+
+
 
 K_PLUGIN_FACTORY(kddrescueviewPartFactory, registerPlugin<kddrescueviewPart>();)
 
@@ -51,8 +58,8 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     setComponentData(aboutData);
 
     // set internal UI
-    // TODO: replace with your custom UI
     m_view = new BlockWidget(parentWidget);
+    //m_view = new QTableView(parentWidget);
     setWidget(m_view);
 
     // set KXMLUI resource file
@@ -61,14 +68,13 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     // setup actions
     setupActions();
 
-    // starting with empty data model, not modified at begin
-    // TODO: replace with your custom data model
+    // data model
     m_rescue_map = new RescueMap(this);
     m_rescue_status = RescueStatus();
-    /* TODO: draw on QWidget based on the model
-     * in kddrescueviewpart.h, it was QtableView* m_view;
-     * m_view->setModel(m_model); 
-     */
+
+    /* TODO: draw on QWidget based on the model */
+    // m_view->setModel(m_rescue_map); 
+
 }
 
 kddrescueviewPart::~kddrescueviewPart()
@@ -148,15 +154,8 @@ bool kddrescueviewPart::openFile()
         if( tokens.count() == 2 || (tokens.count() > 2 && tokens[2].startsWith("#")) )
         if( tokens[0].toLongLong(&conversion_ok, 0) >= 0 ) /* 0: guess the base */
         if( conversion_ok )
-        if(     tokens[1] == OperationCharacter[Operation::copying]
-                || tokens[1] == OperationCharacter[Operation::trimming]
-                || tokens[1] == OperationCharacter[Operation::scraping]
-                || tokens[1] == OperationCharacter[Operation::retrying]
-                || tokens[1] == OperationCharacter[Operation::filling]
-                || tokens[1] == OperationCharacter[Operation::generating]
-                || tokens[1] == OperationCharacter[Operation::finished]
-                )
-        if( m_rescue_status.currentOperation() != Operation::unknown )
+        if( Operation::isValid(tokens[1]) )
+        if( m_rescue_status.currentOperation() != "unknown" )
         {
             m_rescue_status.setCurrentPosition(tokens[1].toLongLong(&conversion_ok, 0));
             m_rescue_status.setCurrentOperation(tokens[1]);
@@ -175,15 +174,8 @@ bool kddrescueviewPart::openFile()
         if( tokens.count() == 3 || (tokens.count() > 3 && tokens[3].startsWith("#")) )
         if( tokens[0].toLongLong(&conversion_ok, 0) >= 0 ) /* 0: guess the base for position */
         if( conversion_ok )
-        if(    tokens[1] == OperationCharacter[Operation::copying]
-                || tokens[1] == OperationCharacter[Operation::trimming]
-                || tokens[1] == OperationCharacter[Operation::scraping]
-                || tokens[1] == OperationCharacter[Operation::retrying]
-                || tokens[1] == OperationCharacter[Operation::filling]
-                || tokens[1] == OperationCharacter[Operation::generating]
-                || tokens[1] == OperationCharacter[Operation::finished]
-                )
-        if( m_rescue_status.currentOperation() == Operation::unknown )
+        if( Operation::isValid(tokens[1]) )
+        if( m_rescue_status.currentOperation() == "unknown" )
         if( tokens[2].toInt(&conversion_ok, 10) >= 1 )/* 10: pass number must be in base 10 */
         if( conversion_ok )
         {
@@ -210,25 +202,13 @@ bool kddrescueviewPart::openFile()
         if( conversion_ok )
         if( tokens[1].toLongLong(&conversion_ok, 0) > 0 ) /* 0: guess the base for size */
         if( conversion_ok )
-        if(     tokens[2] == StatusCharacter[Status::nontried]
-                || tokens[2] == StatusCharacter[Status::nontrimmed]
-                || tokens[2] == StatusCharacter[Status::nonscraped]
-                || tokens[2] == StatusCharacter[Status::badsector]
-                || tokens[2] == StatusCharacter[Status::rescued]
-                )
+        if( Status::isValid(tokens[2]) )
         {
-            QStandardItem* block_position = new QStandardItem(tokens[0]);
-            QStandardItem* block_size = new QStandardItem(tokens[1]);
-            QStandardItem* block_status = new QStandardItem(tokens[2]);
-            QList<QStandardItem*> items = { block_position, block_size, block_status };
-            m_rescue_map->appendRow(items);
-            m_rescue_map->addRescueBlock( 
-                                            tokens[0].toLongLong(&conversion_ok, 0),
-                                            tokens[1].toLongLong(&conversion_ok, 0),
-                                            tokens[2]
-                                        );
-            // TODO: convert to proper data type
-            /* qDebug() << "Data block line"; */
+            QStandardItem* pos = new Position(tokens[0]);
+            QStandardItem* size = new Size(tokens[1]);
+            QStandardItem* status = new Status(tokens[2]);
+            QList<QStandardItem*> block_data = { pos, size, status };
+            m_rescue_map->appendRow(block_data);
             continue;
         }
         /*
@@ -243,13 +223,10 @@ bool kddrescueviewPart::openFile()
         qDebug() << QString("Error line: %1").arg(line);
         file.close();
         return false;
-        /* TODO: identify parsing errors */
     }
 
     file.close();
     
-    // m_rescue_map->print();
-
     return true;
 }
 

@@ -19,50 +19,37 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KDDRESCUEVIEWPART_H
-#define KDDRESCUEVIEWPART_H
-
-#include "rescue_map_widget.h"
 #include "rescue_status.h"
-#include "rescue_map.h"
+#include "rescue_operation.h"
 
-// KF headers
-#include <KParts/ReadOnlyPart>
+#include <QDebug>
 
-class QWidget;
-class QAction;
-class QTableView;
+RescueStatus::RescueStatus():
+    m_current_position{0},
+    m_current_operation{" "},
+    m_current_pass{-1}
+{}
 
-/**
- * @short kddrescueview Part
- */
-class kddrescueviewPart : public KParts::ReadOnlyPart
+bool RescueStatus::setCurrentPosition(long long int position)
 {
-    Q_OBJECT
+    if( position < 0 ) {
+        return false;
+    }
+    m_current_position = position;
+    return true;
+}
 
-public:
-    /**
-     * Default constructor, with arguments as expected by KPluginFactory
-     */
-    kddrescueviewPart(QWidget* parentWidget, QObject* parent, const QVariantList& arg);
+bool RescueStatus::setCurrentOperation(QString operation)
+{
+    return m_current_operation.setOperation(operation);
+}
 
-    /**
-     * Destructor
-     */
-    ~kddrescueviewPart() override;
-
-
-protected: // KParts::ReadOnlyPart API
-    bool openFile() override;
-
-private:
-    void setupActions();
-
-private:
-    QWidget* m_view;  // either BlockWidget* or QTableView*
-    
-    RescueMap* m_rescue_map;
-    RescueStatus m_rescue_status;
-};
-
-#endif // KDDRESCUEVIEWPART_H
+bool RescueStatus::setCurrentPass(int pass)
+{
+    if( pass <= 0 ) {
+        qDebug() << "Error: pass number must be greater than 1";
+        return false;
+    }
+    m_current_pass = pass;
+    return true;
+}
