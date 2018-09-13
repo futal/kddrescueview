@@ -40,21 +40,17 @@ RescueTotals::RescueTotals(const RescueMap* map)
     for(int row = 0; row < map->rowCount(); ++row) 
     {
         // Size position : not used
-        bool conversion_ok;
-        Size size = (qint64) map->data(map->index(row, 1), Qt::UserRole).toLongLong(&conversion_ok);
-        if( !conversion_ok ) {
-            this->reset();
-            return;
-        }        
-        char status = map->data(map->index(row, 2), Qt::UserRole).toString().at(0).toLatin1();
-        switch(status)
+        BlockSize *size = dynamic_cast<BlockSize*>(map->item(row, 1));
+        BlockStatus *status = dynamic_cast<BlockStatus*>(map->item(row, 2));
+        char status_char = status->data(Qt::DisplayRole).toString().at(0).toLatin1();
+        switch(status_char)
         {
-            case '?': m_nontried += size; break;
-            case '*': m_nontrimmed += size; break;
-            case '/': m_nonscraped += size; break;
-            case '-': m_badsectors += size; break;
-            case '+': m_recovered += size; break;
-            default: m_unknown += size;
+            case '?': m_nontried += (*size); break;
+            case '*': m_nontrimmed += (*size); break;
+            case '/': m_nonscraped += (*size); break;
+            case '-': m_badsectors += (*size); break;
+            case '+': m_recovered += (*size); break;
+            default: m_unknown += (*size);
         }
     }
 };
@@ -82,3 +78,16 @@ QList<QPieSlice *> RescueTotals::totals() const
     return result;
 }
 */
+
+QDebug operator<<(QDebug dbg, const RescueTotals &t)
+{
+    dbg.nospace() << "RescueTotals" << endl;
+    dbg.nospace() << "    Non-tried:  " << t.nontried() << endl;
+    dbg.nospace() << "    Non-trimmed:" << t.nontrimmed() << endl;
+    dbg.nospace() << "    Non-scraped:" << t.nonscraped() << endl;
+    dbg.nospace() << "    Bad sectors:" << t.badsectors() << endl;
+    dbg.nospace() << "    Recovered:  " << t.recovered() << endl;
+    dbg.nospace() << "    Unknown:    " << t.unknown() << endl;
+    dbg.nospace() << endl;
+    return dbg.maybeSpace();
+}

@@ -21,66 +21,60 @@
 
 #include "block_size.h"
 
-Size::Size()
-    :m_size(-1)
+BlockSize::BlockSize()
+    :QStandardItem()
 {
 }
 
-Size::Size(const Size &other)
+BlockSize::BlockSize(const BlockSize &other)
     :QStandardItem(other)
 {
-    this->m_size = other.m_size;
 }
 
-Size::~Size()
+BlockSize::~BlockSize()
 {
 }
 
-Size::Size(QString size)
+BlockSize::BlockSize(qint64 size)
+    :BlockSize()
+{
+    setData(QVariant(size), Qt::DisplayRole);
+}
+
+BlockSize::BlockSize(QString s)
+    :BlockSize()
 {
     bool conversion_ok;
-    m_size = size.toLongLong(&conversion_ok, 0);
-    if( !conversion_ok ) {
-        m_size = -1;
+    qint64 size = s.toLongLong(&conversion_ok, 0);
+    if (conversion_ok)
+    {
+        setData(QVariant(size), Qt::DisplayRole);
     }
 }
 
-Size::Size(qint64 size)
+int BlockSize::type() const
 {
-    m_size = size;
+    return UserType+1;
 }
 
-QVariant Size::data(int role) const 
+void BlockSize::operator=(const BlockSize &other)
 {
-    if( role == Qt::DisplayRole ) {
-        return "0x"+QString::number(m_size, 16);
-    }
-    if( role == Qt::UserRole ) {
-        return m_size;
-    }
-    return QStandardItem::data(role);
+    setData(QVariant(other.data(Qt::DisplayRole)), Qt::DisplayRole);
 }
 
-void Size::operator=(const qint64 &i)
+BlockSize BlockSize::operator+(const BlockSize &size) const
 {
-    // TODO: refuse negative values
-    m_size = i;
+    qint64 total = data(Qt::DisplayRole).value<quint64>() + size.data(Qt::DisplayRole).value<quint64>();
+    return BlockSize(total);
 }
 
-Size Size::operator+(const Size &s) const
+void BlockSize::operator+=(const BlockSize &size)
 {
-    Size result;
-    result = this->size() + s.size();  // operator= convert back to Size
-    return result;
+    setData(QVariant(data(Qt::DisplayRole).value<quint64>() + size.data(Qt::DisplayRole).value<quint64>()), Qt::DisplayRole);
 }
 
-void Size::operator+=(const Size &s)
+QDebug operator<<(QDebug dbg, const BlockSize &s)
 {
-    m_size += s.size();
-}
-
-QDebug operator<<(QDebug dbg, const Size &s)
-{
-    dbg.nospace() << "Size(0x" << QString::number(s.size(), 16)  << ")";
+    dbg.nospace() << "Size(0x" << QString::number(s.data(Qt::DisplayRole).value<qint64>(), 16)  << ")";
     return dbg.maybeSpace();
 }

@@ -59,7 +59,7 @@ private:
     void setupActions();
 
 private:
-    QWidget* m_view;  // either BlockWidget* or QTableView*
+    RescueMapWidget* m_view;  // either RescueMapWidget* or QTableView*
     
     RescueMap* m_rescue_map;
     RescueStatus m_rescue_status;

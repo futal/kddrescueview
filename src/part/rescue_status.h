@@ -23,7 +23,6 @@
 #define RESCUE_STATUS_H
 
 #include "block_position.h"
-#include "block_size.h"
 #include "rescue_operation.h"
 class RescueMap;
 class QString;
@@ -39,16 +38,16 @@ class RescueStatus
 {
 public:
     RescueStatus();
-    Position currentPosition() const { return m_current_position; }
-    bool setCurrentPosition(long long int position);
-    QString currentOperation() const { return m_current_operation.toStr(); }
-    bool setCurrentOperation(QString operation);
+    BlockPosition currentPosition() const { return m_current_position; }
+    void setCurrentPosition(qint64 position);
+    RescueOperation currentOperation() const { return m_current_operation; }
+    void setCurrentOperation(QString operation);
     int currentPass() const { return m_current_pass; }
     bool setCurrentPass(int pass);
 
 private:
-    Position m_current_position;
-    Operation m_current_operation;
+    BlockPosition m_current_position;
+    RescueOperation m_current_operation;
     int m_current_pass;
 };
 

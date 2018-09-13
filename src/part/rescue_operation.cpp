@@ -19,49 +19,62 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "block_status.h"
+#include "rescue_operation.h"
+#include <QDebug>
 
-BlockStatus::BlockStatus()
+RescueOperation::RescueOperation()
     :QStandardItem()
 {
 }
 
-BlockStatus::BlockStatus(const BlockStatus &other)
+RescueOperation::RescueOperation(const RescueOperation &other)
     :QStandardItem(other)
 {
 }
 
-BlockStatus::~BlockStatus()
+RescueOperation::~RescueOperation()
 {
 }
 
-BlockStatus::BlockStatus(QString status)
-    :BlockStatus()
+RescueOperation::RescueOperation(QString operation)
+    :RescueOperation()
 {
-    if (BlockStatus::isValid(status))
+    if (RescueOperation::isValid(operation))
     {
-        setData(QVariant(status), Qt::DisplayRole);
+        setData(QVariant(operation), Qt::DisplayRole);
     }
 }
 
-int BlockStatus::type() const
+void RescueOperation::setOperation(QString operation)
 {
-    return UserType+2;
+    if (RescueOperation::isValid(operation))
+    {
+        setData(QVariant(operation), Qt::DisplayRole);
+    }
+    else
+    {
+        setData(QVariant(), Qt::DisplayRole);
+    }
 }
 
-bool BlockStatus::isValid() const
+int RescueOperation::type() const
 {
-    return statuses.count(data(Qt::DisplayRole).toString());
+    return UserType+3;
 }
 
-bool BlockStatus::isValid(QString s)  /* static method */
+bool RescueOperation::isValid() const
 {
-    return statuses.count(s);
+    return operations.count(data(Qt::DisplayRole).toString());
 }
 
-QDebug operator<<(QDebug dbg, const BlockStatus &s)
+bool RescueOperation::isValid(QString s)  /* static method */
 {
-    QString status = s.data(Qt::DisplayRole).toString();
-    dbg.nospace() << "Status(" << status << ": " << statuses.value(status, "Unknown block status") << ")";
+    return operations.count(s);
+}
+
+QDebug operator<<(QDebug dbg, const RescueOperation &o)
+{
+    QString operation = o.data(Qt::DisplayRole).toString();
+    dbg.nospace() << "Operation(" << operation << ": " << operations.value(operation, "Unknown operation") << ")";
     return dbg.maybeSpace();
 }

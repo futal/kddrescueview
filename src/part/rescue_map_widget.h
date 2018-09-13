@@ -30,16 +30,15 @@
 #include <QPen>
 #include <QPixmap>
 #include <QTableView>
+#include "rescue_map.h"
 
-class QStandardItemModel;
 
-
-class BlockWidget : public QWidget
+class RescueMapWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit BlockWidget(QWidget *parent = nullptr);
-    void setModel(QStandardItemModel* model = nullptr);
+    explicit RescueMapWidget(QWidget *parent = nullptr);
+    void setModel(RescueMap *model);
 public slots:
     void setGridSize(const int step = 8);
 
@@ -48,7 +47,7 @@ protected:
 
 private:
     int m_grid_step;
-    QStandardItemModel* m_model;
+    RescueMap *m_model;
 };
 
 #endif // RESCUE_MAP_WIDGET_H

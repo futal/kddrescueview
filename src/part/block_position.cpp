@@ -22,57 +22,75 @@
 #include "block_position.h"
 #include <QDebug>
 
-Position::Position()
-    :m_position(-1)
+BlockPosition::BlockPosition()
+    :QStandardItem()
 {
 }
 
-Position::Position(const Position &other)
+BlockPosition::BlockPosition(const BlockPosition &other)
     :QStandardItem(other)
 {
-    m_position = other.m_position;
 }
 
-Position::~Position()
+BlockPosition::~BlockPosition()
 {
 }
 
-Position::Position(QString position)
+BlockPosition::BlockPosition(qint64 position)
+    :BlockPosition()
+{
+    setData(QVariant(position), Qt::DisplayRole);
+}
+
+BlockPosition::BlockPosition(QString p)
+    :BlockPosition()
 {
     bool conversion_ok;
-    m_position = position.toLongLong(&conversion_ok, 0);
-    if( !conversion_ok ) {
-        m_position = -1;
+    qint64 position = p.toLongLong(&conversion_ok, 0);
+    if (conversion_ok)
+    {
+        setData(QVariant(position), Qt::DisplayRole);
     }
 }
-    
-QVariant Position::data(int role) const
+
+int BlockPosition::type() const
 {
-    if( role == Qt::DisplayRole ) {
-        return "0x"+QString::number(m_position, 16);
+    return UserType+0;
+}
+
+void BlockPosition::operator=(const BlockPosition &other)
+{
+    setData(QVariant(other.data(Qt::DisplayRole)), Qt::DisplayRole);
+}
+
+BlockPosition BlockPosition::operator+(const BlockSize &size) const
+{
+    qint64 next_position = data(Qt::DisplayRole).value<quint64>() + size.data(Qt::DisplayRole).value<quint64>();
+    return BlockPosition(next_position);
+}
+
+bool BlockPosition::operator==(const BlockPosition &other) const
+{
+    return data(Qt::DisplayRole).value<qint64>() == other.data(Qt::DisplayRole).value<qint64>();
+}
+
+bool BlockPosition::operator<=(const BlockPosition &other) const
+{
+    return data(Qt::DisplayRole).value<qint64>() <= other.data(Qt::DisplayRole).value<qint64>();
+}
+
+BlockSize BlockPosition::operator-(const BlockPosition &other) const
+{
+    qint64 total_size = data(Qt::DisplayRole).value<qint64>() - other.data(Qt::DisplayRole).value<quint64>();
+    if (total_size < 0)
+    {
+        return BlockSize();
     }
-    if( role == Qt::UserRole ) {
-        return m_position;
-    }
-    return QStandardItem::data(role);
+    return BlockSize(total_size);
 }
 
-void Position::operator=(const qint64 &i)
+QDebug operator<<(QDebug dbg, const BlockPosition &p)
 {
-    // TODO: refuse negative values
-    m_position = i;
-}
-
-Position Position::operator+(const Size &s) const
-{
-    Position result;
-    result = this->position() + s.size();  // operator= convert back to Position
-    return result;
-}
-
-
-QDebug operator<<(QDebug dbg, const Position &p)
-{
-    dbg.nospace() << "Position(0x" << QString::number(p.position(), 16)  << ")";
+    dbg.nospace() << "Position(0x" << QString::number(p.data(Qt::DisplayRole).value<qint64>(), 16)  << ")";
     return dbg.maybeSpace();
 }

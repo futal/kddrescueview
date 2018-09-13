@@ -41,20 +41,20 @@ public:
     
 //    QList<QPair<String, qreal>> totals() const; // for Pie chart
     void reset();
-    Size nontried() const { return m_nontried; }
-    Size nontrimmed() const { return m_nontrimmed; }
-    Size nonscscraped() const { return m_nonscraped; }
-    Size badsdsectors() const { return m_badsectors; }
-    Size recovered() const { return m_recovered; }
-    Size unknown() const { return m_unknown; }
+    BlockSize nontried() const { return m_nontried; }
+    BlockSize nontrimmed() const { return m_nontrimmed; }
+    BlockSize nonscraped() const { return m_nonscraped; }
+    BlockSize badsectors() const { return m_badsectors; }
+    BlockSize recovered() const { return m_recovered; }
+    BlockSize unknown() const { return m_unknown; }
 
 private:
-    Size m_nontried;
-    Size m_nontrimmed;
-    Size m_nonscraped;
-    Size m_badsectors;
-    Size m_recovered;
-    Size m_unknown;
+    BlockSize m_nontried;
+    BlockSize m_nontrimmed;
+    BlockSize m_nonscraped;
+    BlockSize m_badsectors;
+    BlockSize m_recovered;
+    BlockSize m_unknown;
 };
 
 QDebug operator<<(QDebug dbg, const RescueTotals &t);

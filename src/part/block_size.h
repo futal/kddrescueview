@@ -32,33 +32,34 @@
  * - to report the size of the recovery area of the input file.
  */
 
-class Size : public QStandardItem
+class BlockSize : public QStandardItem
 {
 public:
     // to be integrated in the meta-objet system
-    Size();
-    Size(const Size &other);
-    ~Size();
- 
-    Size(QString size);
-    Size(qint64 size);
+    BlockSize();
+    BlockSize(const BlockSize &other);
+    ~BlockSize();
 
-    qint64 size() const { return m_size; }
+    // construct from external data
+    BlockSize(qint64 size);
+    BlockSize(QString size);
 
-    // to be usable in a QStandardItemModel
-    virtual QStandardItem* clone() const { return new Size("0x"+QString::number(m_size, 16)); }
-    QVariant data(int role = Qt::UserRole+1 ) const;
+    // define BlockSize as a new type of QStandardItem
+    int type() const;   // +0 for BlockPosition, +1 for BlockSize, +2 for BlockStatus
 
-    void operator=(const qint64 &i);
-    Size operator+(const Size &s) const;
-    void operator+=(const Size &s);
+    // operations with BlockSize:
+    void operator=(const BlockSize &other);
+    BlockSize operator+(const BlockSize &other) const;   // for "size = size1 + size2"
+    void operator+=(const BlockSize &other);        // for "size += size1"
+//    bool operator==(const BlockSize &other) const;     // for "size1 == size2"
+//    BlockSize operator-(const BlockSize &other) const; // for "size = size1 - size2"
 
 private:
-    qint64 m_size;
+    // qint64 m_size; // to be stored with setData(const QVariant &value, int role = Qt::UserRole + 1)
 };
 
-Q_DECLARE_METATYPE(Size);  // makes it possible for Size values to be stored in QVariant objects and retrieved later
+Q_DECLARE_METATYPE(BlockSize);  // makes it possible for Size values to be stored in QVariant objects and retrieved later
 
-QDebug operator<<(QDebug dbg, const Size &size);  // prettify debug output
+QDebug operator<<(QDebug dbg, const BlockSize &size);  // prettify debug output
 
 #endif // BLOCK_SIZE_H

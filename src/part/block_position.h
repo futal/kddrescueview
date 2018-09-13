@@ -38,32 +38,35 @@
  * cf. https://www.gnu.org/software/ddrescue/manual/ddrescue_manual.html#Mapfile-structure
  */
 
-class Position : public QStandardItem
+class BlockPosition : public QStandardItem
 {
 public:
     // to be integrated in the meta-objet system
-    Position();
-    Position(const Position &other);
-    ~Position();
-    
-    Position(QString position);
-    
-    quint64 position() const { return m_position; }
+    BlockPosition();
+    BlockPosition(const BlockPosition &other);
+    ~BlockPosition();
 
-    // to be usable in a QStandardItemModel
-    virtual QStandardItem* clone() const { return new Position("0x"+QString::number(m_position, 16)); }
-    QVariant data(int role = Qt::UserRole+1 ) const;
+    // construct from external data
+    BlockPosition(qint64 position);
+    BlockPosition(QString position);
     
-    void operator=(const qint64 &i);
-    Position operator+(const Size &s) const;
+    // define BlockPosition as a new type of QStandardItem
+    int type() const;  // +0 for BlockPosition, +1 for BlockSize, +2 for BlockStatus
+
+    // operations with BlockPosition:
+    void operator=(const BlockPosition &other);
+    BlockPosition operator+(const BlockSize &other) const; // for "next block position = block position + block size"
+    bool operator==(const BlockPosition &other) const;     // to check contiguous map with "computed next block position == actual next block position"
+    bool operator<=(const BlockPosition &other) const;     // to compare two positions
+    BlockSize operator-(const BlockPosition &other) const; // to find total map size with "Size = (last position + last size) - first position
 
 private:
-    qint64 m_position;
+    // qint64 m_position; // to be stored with setData(const QVariant &value, int role = Qt::UserRole + 1)
 };
 
-Q_DECLARE_METATYPE(Position);  // makes it possible for Position values to be stored in QVariant objects and retrieved later
+Q_DECLARE_METATYPE(BlockPosition);  // makes it possible for Position values to be stored in QVariant objects and retrieved later
 
-QDebug operator<<(QDebug dbg, const Position &position);  // prettify debug output
+QDebug operator<<(QDebug dbg, const BlockPosition &position);  // prettify debug output
 
 
 #endif // BLOCK_POSITION_H

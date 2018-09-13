@@ -24,6 +24,8 @@
 
 #include <QStandardItemModel>
 #include <QMap>
+#include <QMetaType>
+#include <QDebug>
 
 /**
  * Type for the recovery status of a block. It is used:
@@ -39,19 +41,31 @@ static const QMap<QString, QString> statuses {
     { "+", "block recovered" },
 }; 
 
-class Status : public QStandardItem
+class BlockStatus : public QStandardItem
 {
 public:
-    Status(QString status = "unknown") : m_status(status) { }
-//    virtual ~Status() {}
-    virtual QStandardItem* clone() const { return new Status(m_status); }
-    QVariant data(int role = Qt::UserRole+1 ) const;
-    QString toStr() const { return statuses.value(m_status, "Unknown block status"); }
-    static bool isValid(QString s) { return statuses.count(s); }
+    // to be integrated in the meta-objet system
+    BlockStatus();
+    BlockStatus(const BlockStatus &other);
+    ~BlockStatus();
+
+    // construct from external data
+    BlockStatus(QString status);
+
+    // define BlockStatus as a new type of QStandardItem
+    int type() const; // +0 for BlockPosition, +1 for BlockSize, +2 for BlockStatus
+
+    bool isValid() const;
+    static bool isValid(QString s);
 
 private:
-    QString m_status;
+    // QString m_status;  // to be stored with setData(const QVariant &value, int role = Qt::UserRole + 1)
+    // QString description() const { return statuses.value(m_status, "unknown block status"); } => to be return for specific roles, e.g. tooltip
+
 };
 
+Q_DECLARE_METATYPE(BlockStatus);  // makes it possible for Position values to be stored in QVariant objects and retrieved later
+
+QDebug operator<<(QDebug dbg, const BlockStatus &status);  // prettify debug output
 
 #endif // BLOCK_STATUS_H

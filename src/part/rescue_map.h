@@ -23,12 +23,22 @@
 #define RESCUE_MAP_H
 
 #include <QStandardItemModel>
+#include "block_position.h"
 #include "block_size.h"
 
 class RescueMap : public QStandardItemModel
 {
 public:
     RescueMap(QObject *parent = nullptr);
+    RescueMap(const RescueMap &other);
+    ~RescueMap();
+    
+    RescueMap* extract(BlockPosition start, BlockSize size) const;
+
+    BlockPosition start() const;
+    BlockSize size() const;
 };
+
+QDebug operator<<(QDebug dbg, const RescueMap &map);  // prettify debug output
 
 #endif // RESCUE_MAP_H

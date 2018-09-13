@@ -25,23 +25,20 @@
 #include <QDebug>
 
 RescueStatus::RescueStatus():
-    m_current_position{0},
-    m_current_operation{" "},
-    m_current_pass{-1}
-{}
-
-bool RescueStatus::setCurrentPosition(long long int position)
+    m_current_position(),
+    m_current_operation(),
+    m_current_pass()
 {
-    if( position < 0 ) {
-        return false;
-    }
-    m_current_position = position;
-    return true;
 }
 
-bool RescueStatus::setCurrentOperation(QString operation)
+void RescueStatus::setCurrentPosition(qint64 position)
 {
-    return m_current_operation.setOperation(operation);
+    m_current_position = BlockPosition(position);
+}
+
+void RescueStatus::setCurrentOperation(QString operation)
+{
+    m_current_operation.setOperation(operation);
 }
 
 bool RescueStatus::setCurrentPass(int pass)

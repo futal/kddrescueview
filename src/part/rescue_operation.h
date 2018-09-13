@@ -24,6 +24,7 @@
 
 #include <QMap>
 #include <QString>
+#include <QStandardItem>
 
 /**
  * Type for current rescue operation. It is used:
@@ -41,34 +42,25 @@ static const QMap<QString, QString> operations {
     { "+", "Finished" },
 }; 
 
-class Operation {
+class RescueOperation : public QStandardItem
+{
 public:
-    Operation(QString s) {
-        if (Operation::isValid(s)) { m_operation = s; }
-        else { m_operation = " "; }
-    }
-//    virtual ~Operation() {}
+    // to be integrated in the meta-objet system
+    RescueOperation();
+    RescueOperation(const RescueOperation &other);
+    ~RescueOperation();
+
+    // construct from external data
+    RescueOperation(QString operation);
     
-    bool setOperation(QString s) {
-        if (Operation::isValid(s))
-        {
-            m_operation = s;
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    
-    QString toStr() const { return m_operation; }
-    
-    QString description() const { return operations.value(m_operation, "Unknown operation"); }
-    
-    static bool isValid(QString s) { return operations.count(s); }
-    
-private:
-    QString m_operation;
+    void setOperation(QString operation);
+
+    int type() const; // +0 for BlockPosition, +1 for BlockSize, +2 for BlockStatus, +3 for RescueOperation
+
+    bool isValid() const;
+    static bool isValid(QString s);
 };
+
+QDebug operator<<(QDebug dbg, const RescueOperation &o);  // prettify debug output
 
 #endif // RESCUE_OPERATION_H

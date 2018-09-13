@@ -19,49 +19,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "block_status.h"
+#ifndef SQUARE_COLOR_H
+#define SQUARE_COLOR_H
 
-BlockStatus::BlockStatus()
-    :QStandardItem()
-{
-}
+#include <QColor>
+#include "rescue_totals.h"
 
-BlockStatus::BlockStatus(const BlockStatus &other)
-    :QStandardItem(other)
-{
-}
+/**
+ * @todo write docs
+ */
 
-BlockStatus::~BlockStatus()
+class SquareColor : public QColor
 {
-}
+public:
+    SquareColor(RescueTotals * totals);
+};
 
-BlockStatus::BlockStatus(QString status)
-    :BlockStatus()
-{
-    if (BlockStatus::isValid(status))
-    {
-        setData(QVariant(status), Qt::DisplayRole);
-    }
-}
+// Q_DECLARE_METATYPE(SquareColor);
 
-int BlockStatus::type() const
-{
-    return UserType+2;
-}
+QDebug operator<<(QDebug dbg, const SquareColor &c);
 
-bool BlockStatus::isValid() const
-{
-    return statuses.count(data(Qt::DisplayRole).toString());
-}
-
-bool BlockStatus::isValid(QString s)  /* static method */
-{
-    return statuses.count(s);
-}
-
-QDebug operator<<(QDebug dbg, const BlockStatus &s)
-{
-    QString status = s.data(Qt::DisplayRole).toString();
-    dbg.nospace() << "Status(" << status << ": " << statuses.value(status, "Unknown block status") << ")";
-    return dbg.maybeSpace();
-}
+#endif // SQUARE_COLOR_H
