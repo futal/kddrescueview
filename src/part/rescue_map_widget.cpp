@@ -73,33 +73,39 @@ void RescueMapWidget::paintEvent(QPaintEvent * /* event */)
     painter.setPen(pen);
     painter.setBrush(brush);
 
-    for( int sq = 0; sq < max_squares; ++sq)
+    QVector<SquareColor*> square_colors;
+    for(int row=0, sq=0; row < rows; ++row) 
     {
-        int row = sq % rows;
-        int col = sq % columns;
-        int y = row * m_grid_step;
-        int x = col * m_grid_step;
-
-        BlockPosition square_start(map_start_position + sq * square_size);
-
-        RescueMap *square_map = m_model->extract(square_start, BlockSize(square_size));
-        RescueTotals square_totals(square_map);
-
-        SquareColor square_color(&square_totals);
-
-        if(square_totals.badsectors().data(Qt::DisplayRole).value<qint64>() > 0)
+        for(int col=0; col < columns && sq < max_squares; ++col, ++sq) 
         {
-            qDebug() << "Square #" << sq << square_color << endl;
-            qDebug() << square_totals;
+            BlockPosition square_start(map_start_position + sq * square_size);
+            RescueMap *square_map = m_model->extract(square_start, BlockSize(square_size));
+            RescueTotals square_totals(square_map);
+            SquareColor* square_color = new SquareColor(&square_totals);
+            square_colors.append(square_color);
+
+            if(square_totals.badsectors().data(Qt::DisplayRole).value<qint64>() > 0)
+            {
+                qDebug() << "Square #" << sq << square_color << endl;
+                qDebug() << square_totals;
+            }
         }
+    }
+    
+    for(int row=0, sq=0; row < rows; ++row)
+    {
+        for(int col=0; col < columns && sq < max_squares; ++col, ++sq)
+        {
+            int y = row * m_grid_step;
+            int x = col * m_grid_step;
+    
+            brush.setColor(*square_colors.at(sq));
+            painter.setBrush(brush);
 
-
-        brush.setColor(square_color);
-        painter.setBrush(brush);
-
-        painter.save();
-        painter.translate(x, y);
-        painter.drawRect(square_geometry);
-        painter.restore();
+            painter.save();
+            painter.translate(x, y);
+            painter.drawRect(square_geometry);
+            painter.restore();
+        }
     }
 }
