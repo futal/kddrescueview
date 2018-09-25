@@ -10,7 +10,7 @@ and recovered disk areas on a colored grid. Kddrescueview provides a KPart for
 integration in other KDE applications.
 
 Kddrescueview is just an exercise to improve my C++/Qt/KDE skills (see below 
-the [Development](#development) section). It is a blade copy of Martin 
+the [Development goal](#development-goal) section). It is a blade copy of Martin 
 Bittermann's excellent 
 [ddrescueview](https://sourceforge.net/projects/ddrescueview/). Unless you need 
 the KDE integration, you probably want to use ddrescueview which offers much 
