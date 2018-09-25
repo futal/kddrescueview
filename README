@@ -1,9 +1,29 @@
+Kddrescueview
+=============
+
+Description
+-----------
+
+Kddrescueview is a graphical viewer for [GNU ddrescue](https://www.gnu.org/software/ddrescue/)
+mapfiles. It shows damaged and recovered disk areas on a colored grid. 
+Kddrescueview provides a KPart for integration in other KDE applications.
+
+Although written from scratch in C++/Qt (more exactly from the KPart template),
+Kddrescueview draws heavily on Martin Bittermann's excellent 
+[ddrescueview](https://sourceforge.net/projects/ddrescueview/). You can 
+definitively call it plagiarism. Unless you need the KDE integration, you probably 
+want to use ddrescueview which offers much more features.
+
+This program is free software released under the GNU GPL version 2 or (at your 
+option) version 3 or any later version accepted by the membership of KDE e.V.
+
+
 How To Build This Project
--=-=-=-=-=-=-=-=-=-=-=-=-=
+-------------------------
 
 --- On Unix:
 
-cd /home/adrien/dev/kddrescueview
+cd kddrescueview
 mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=$PROJECTINSTALLDIR -DCMAKE_BUILD_TYPE=Debug ..      <- do not forget the ..
@@ -19,9 +39,9 @@ Note: you can use another build path. Then cd in your build dir and:
 export KDE_SRC=path_to_your_src
 cmake $KDE_SRC -DCMAKE_INSTALL_PREFIX=$PROJECTINSTALLDIR -DCMAKE_BUILD_TYPE=Debug
 
---- On Windows:
+--- On Windows (not tested):
 
-cd /home/adrien/dev/kddrescueview
+cd kddrescueview
 mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=%PROJECTINSTALLDIR% -DCMAKE_BUILD_TYPE=Debug ..      <- do not forget the ..
@@ -35,12 +55,3 @@ to uninstall the project:
 
 Note: use nmake if you're building with the Visual Studio compiler, or make
 if you're using the minGW compiler
-
-
-Tutorials
--=-=-=-=-
-KParts docs
-https://techbase.kde.org/Development/Architecture/KDE4/KParts
-https://api.kde.org/frameworks/kparts/html/index.html
-Tutorial
-https://techbase.kde.org/Development/Tutorials/Using_KParts
