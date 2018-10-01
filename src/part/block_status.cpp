@@ -62,6 +62,6 @@ bool BlockStatus::isValid(QString s)  /* static method */
 QDebug operator<<(QDebug dbg, const BlockStatus &s)
 {
     QString status = s.data(Qt::DisplayRole).toString();
-    dbg.nospace() << "Status(" << status << ": " << statuses.value(status, "Unknown block status") << ")";
+    dbg.nospace().noquote() << "Status(" << status << ": " << statuses.value(status, "Unknown block status") << ")";
     return dbg.maybeSpace();
 }

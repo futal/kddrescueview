@@ -91,6 +91,6 @@ BlockSize BlockPosition::operator-(const BlockPosition &other) const
 
 QDebug operator<<(QDebug dbg, const BlockPosition &p)
 {
-    dbg.nospace() << "Position(0x" << QString::number(p.data(Qt::DisplayRole).value<qint64>(), 16)  << ")";
+    dbg.nospace().noquote() << "Position(0x" << QString::number(p.data(Qt::DisplayRole).value<qint64>(), 16)  << ")";
     return dbg.maybeSpace();
 }

@@ -82,12 +82,12 @@ QList<QPieSlice *> RescueTotals::totals() const
 QDebug operator<<(QDebug dbg, const RescueTotals &t)
 {
     dbg.nospace() << "RescueTotals" << endl;
-    dbg.nospace() << "    Non-tried:  " << t.nontried() << endl;
-    dbg.nospace() << "    Non-trimmed:" << t.nontrimmed() << endl;
-    dbg.nospace() << "    Non-scraped:" << t.nonscraped() << endl;
-    dbg.nospace() << "    Bad sectors:" << t.badsectors() << endl;
-    dbg.nospace() << "    Recovered:  " << t.recovered() << endl;
-    dbg.nospace() << "    Unknown:    " << t.unknown() << endl;
+    dbg.nospace() << "    Non-tried:   " << t.nontried() << endl;
+    dbg.nospace() << "    Non-trimmed: " << t.nontrimmed() << endl;
+    dbg.nospace() << "    Non-scraped: " << t.nonscraped() << endl;
+    dbg.nospace() << "    Bad sectors: " << t.badsectors() << endl;
+    dbg.nospace() << "    Recovered:   " << t.recovered() << endl;
+    dbg.nospace() << "    Unknown:     " << t.unknown() << endl;
     dbg.nospace() << endl;
     return dbg.maybeSpace();
 }

@@ -75,6 +75,6 @@ void BlockSize::operator+=(const BlockSize &size)
 
 QDebug operator<<(QDebug dbg, const BlockSize &s)
 {
-    dbg.nospace() << "Size(0x" << QString::number(s.data(Qt::DisplayRole).value<qint64>(), 16)  << ")";
+    dbg.nospace().noquote() << "Size(0x" << QString::number(s.data(Qt::DisplayRole).value<qint64>(), 16)  << ")";
     return dbg.maybeSpace();
 }
