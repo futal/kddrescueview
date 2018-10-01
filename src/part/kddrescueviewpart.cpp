@@ -63,8 +63,8 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     m_rescue_status = RescueStatus();
 
     // set internal UI
-    m_view = new RescueMapWidget(parentWidget);
-    //m_view = new QTableView(parentWidget);
+    //m_view = new RescueMapWidget(parentWidget);
+    m_view = new QTableView(parentWidget);
     m_view->setModel(m_rescue_map);
     setWidget(m_view);
 

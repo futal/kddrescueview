@@ -59,9 +59,11 @@ private:
     void setupActions();
 
 private:
-    RescueMapWidget* m_view;  // either RescueMapWidget* or QTableView*
-    
+    //RescueMapWidget* m_view;  // either RescueMapWidget* or QTableView*
+    QTableView* m_view;
+
     RescueMap* m_rescue_map;
+
     RescueStatus m_rescue_status;
 };
 
