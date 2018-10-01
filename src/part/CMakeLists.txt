@@ -6,11 +6,11 @@ set(kddrescueview_PART_SRCS
     block_status.cpp
     kddrescueviewpart.cpp
     rescue_map.cpp
-    rescue_map_widget.cpp
+#    rescue_map_widget.cpp
     rescue_operation.cpp
     rescue_status.cpp
-    rescue_totals.cpp
-    square_color.cpp
+#    rescue_totals.cpp
+#    square_color.cpp
 )
 
 add_library(kddrescueviewpart MODULE ${kddrescueview_PART_SRCS})

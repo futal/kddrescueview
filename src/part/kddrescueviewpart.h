@@ -22,7 +22,7 @@
 #ifndef KDDRESCUEVIEWPART_H
 #define KDDRESCUEVIEWPART_H
 
-#include "rescue_map_widget.h"
+// #include "rescue_map_widget.h"
 #include "rescue_status.h"
 #include "rescue_map.h"
 
@@ -59,7 +59,6 @@ private:
     void setupActions();
 
 private:
-    //RescueMapWidget* m_view;  // either RescueMapWidget* or QTableView*
     QTableView* m_view;
 
     RescueMap* m_rescue_map;

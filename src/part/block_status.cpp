@@ -22,12 +22,12 @@
 #include "block_status.h"
 
 BlockStatus::BlockStatus()
-    :QStandardItem()
+    :m_status("U")
 {
 }
 
 BlockStatus::BlockStatus(const BlockStatus &other)
-    :QStandardItem(other)
+    :m_status(other.m_status)
 {
 }
 
@@ -40,18 +40,13 @@ BlockStatus::BlockStatus(QString status)
 {
     if (BlockStatus::isValid(status))
     {
-        setData(QVariant(status), Qt::DisplayRole);
+        m_status = status;
     }
-}
-
-int BlockStatus::type() const
-{
-    return UserType+2;
 }
 
 bool BlockStatus::isValid() const
 {
-    return statuses.count(data(Qt::DisplayRole).toString());
+    return statuses.count(m_status);
 }
 
 bool BlockStatus::isValid(QString s)  /* static method */
@@ -61,7 +56,6 @@ bool BlockStatus::isValid(QString s)  /* static method */
 
 QDebug operator<<(QDebug dbg, const BlockStatus &s)
 {
-    QString status = s.data(Qt::DisplayRole).toString();
-    dbg.nospace().noquote() << "Status(" << status << ": " << statuses.value(status, "Unknown block status") << ")";
+    dbg.nospace().noquote() << "Status(" << s.m_status << ": " << statuses.value(s.m_status, "Unknown block status") << ")";
     return dbg.maybeSpace();
 }

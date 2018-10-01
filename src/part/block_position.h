@@ -22,12 +22,7 @@
 #ifndef BLOCK_POSITION_H
 #define BLOCK_POSITION_H
 
-#include "block_size.h"
-#include <QStandardItemModel>
-#include <QString>
 #include <QDebug>
-#include <QMetaType>
-
 
 /**
  * Type for positions (in bytes). It is used:
@@ -38,7 +33,9 @@
  * cf. https://www.gnu.org/software/ddrescue/manual/ddrescue_manual.html#Mapfile-structure
  */
 
-class BlockPosition : public QStandardItem
+class BlockSize;
+
+class BlockPosition
 {
 public:
     // to be integrated in the meta-objet system
@@ -50,18 +47,20 @@ public:
     BlockPosition(qint64 position);
     BlockPosition(QString position);
     
-    // define BlockPosition as a new type of QStandardItem
-    int type() const;  // +0 for BlockPosition, +1 for BlockSize, +2 for BlockStatus
+    qint64 data() const { return m_position; }
 
     // operations with BlockPosition:
     void operator=(const BlockPosition &other);
     BlockPosition operator+(const BlockSize &other) const; // for "next block position = block position + block size"
     bool operator==(const BlockPosition &other) const;     // to check contiguous map with "computed next block position == actual next block position"
+    bool operator!=(const BlockPosition &other) const;
     bool operator<=(const BlockPosition &other) const;     // to compare two positions
+    bool operator<(const BlockPosition &other) const;
     BlockSize operator-(const BlockPosition &other) const; // to find total map size with "Size = (last position + last size) - first position
 
+    friend QDebug operator<<(QDebug dbg, const BlockPosition &position);
 private:
-    // qint64 m_position; // to be stored with setData(const QVariant &value, int role = Qt::UserRole + 1)
+    qint64 m_position;
 };
 
 Q_DECLARE_METATYPE(BlockPosition);  // makes it possible for Position values to be stored in QVariant objects and retrieved later

@@ -20,14 +20,15 @@
  */
 
 #include "block_size.h"
+#include "block_position.h"
 
 BlockSize::BlockSize()
-    :QStandardItem()
+    :m_size(-1)
 {
 }
 
 BlockSize::BlockSize(const BlockSize &other)
-    :QStandardItem(other)
+    :m_size(other.m_size)
 {
 }
 
@@ -36,9 +37,8 @@ BlockSize::~BlockSize()
 }
 
 BlockSize::BlockSize(qint64 size)
-    :BlockSize()
+    :m_size(size)
 {
-    setData(QVariant(size), Qt::DisplayRole);
 }
 
 BlockSize::BlockSize(QString s)
@@ -48,33 +48,28 @@ BlockSize::BlockSize(QString s)
     qint64 size = s.toLongLong(&conversion_ok, 0);
     if (conversion_ok)
     {
-        setData(QVariant(size), Qt::DisplayRole);
+        m_size = size;
     }
-}
-
-int BlockSize::type() const
-{
-    return UserType+1;
 }
 
 void BlockSize::operator=(const BlockSize &other)
 {
-    setData(QVariant(other.data(Qt::DisplayRole)), Qt::DisplayRole);
+    m_size = other.m_size;
 }
 
 BlockSize BlockSize::operator+(const BlockSize &size) const
 {
-    qint64 total = data(Qt::DisplayRole).value<quint64>() + size.data(Qt::DisplayRole).value<quint64>();
+    qint64 total = m_size + size.m_size;
     return BlockSize(total);
 }
 
 void BlockSize::operator+=(const BlockSize &size)
 {
-    setData(QVariant(data(Qt::DisplayRole).value<quint64>() + size.data(Qt::DisplayRole).value<quint64>()), Qt::DisplayRole);
+    m_size += size.m_size;
 }
 
 QDebug operator<<(QDebug dbg, const BlockSize &s)
 {
-    dbg.nospace().noquote() << "Size(0x" << QString::number(s.data(Qt::DisplayRole).value<qint64>(), 16)  << ")";
+    dbg.nospace().noquote() << "Size(0x" << QString::number(s.m_size, 16)  << ")";
     return dbg.maybeSpace();
 }

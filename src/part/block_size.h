@@ -22,7 +22,6 @@
 #ifndef BLOCK_SIZE_H
 #define BLOCK_SIZE_H
 
-#include <QStandardItemModel>
 #include <QDebug>
 
 /**
@@ -32,7 +31,9 @@
  * - to report the size of the recovery area of the input file.
  */
 
-class BlockSize : public QStandardItem
+class BlockPosition;
+
+class BlockSize
 {
 public:
     // to be integrated in the meta-objet system
@@ -44,8 +45,7 @@ public:
     BlockSize(qint64 size);
     BlockSize(QString size);
 
-    // define BlockSize as a new type of QStandardItem
-    int type() const;   // +0 for BlockPosition, +1 for BlockSize, +2 for BlockStatus
+    qint64 data() const { return m_size; }
 
     // operations with BlockSize:
     void operator=(const BlockSize &other);
@@ -54,8 +54,10 @@ public:
 //    bool operator==(const BlockSize &other) const;     // for "size1 == size2"
 //    BlockSize operator-(const BlockSize &other) const; // for "size = size1 - size2"
 
+    friend class BlockPosition;
+    friend QDebug operator<<(QDebug dbg, const BlockSize &size);
 private:
-    // qint64 m_size; // to be stored with setData(const QVariant &value, int role = Qt::UserRole + 1)
+    qint64 m_size;
 };
 
 Q_DECLARE_METATYPE(BlockSize);  // makes it possible for Size values to be stored in QVariant objects and retrieved later

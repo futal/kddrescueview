@@ -22,9 +22,7 @@
 #ifndef BLOCK_STATUS_H
 #define BLOCK_STATUS_H
 
-#include <QStandardItemModel>
 #include <QMap>
-#include <QMetaType>
 #include <QDebug>
 
 /**
@@ -41,7 +39,7 @@ static const QMap<QString, QString> statuses {
     { "+", "block recovered" },
 }; 
 
-class BlockStatus : public QStandardItem
+class BlockStatus
 {
 public:
     // to be integrated in the meta-objet system
@@ -52,14 +50,14 @@ public:
     // construct from external data
     BlockStatus(QString status);
 
-    // define BlockStatus as a new type of QStandardItem
-    int type() const; // +0 for BlockPosition, +1 for BlockSize, +2 for BlockStatus
+    QString data() const { return m_status; }
 
     bool isValid() const;
     static bool isValid(QString s);
 
+    friend QDebug operator<<(QDebug dbg, const BlockStatus &status);
 private:
-    // QString m_status;  // to be stored with setData(const QVariant &value, int role = Qt::UserRole + 1)
+    QString m_status;
     // QString description() const { return statuses.value(m_status, "unknown block status"); } => to be return for specific roles, e.g. tooltip
 
 };

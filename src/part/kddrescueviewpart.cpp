@@ -63,7 +63,6 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     m_rescue_status = RescueStatus();
 
     // set internal UI
-    //m_view = new RescueMapWidget(parentWidget);
     m_view = new QTableView(parentWidget);
     m_view->setModel(m_rescue_map);
     setWidget(m_view);
@@ -96,6 +95,10 @@ bool kddrescueviewPart::openFile()
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return false;
     }
+
+    QVector<BlockPosition> positions;
+    QVector<BlockSize> sizes;
+    QVector<BlockStatus> statuses;
 
     QTextStream stream(&file);
     while (!stream.atEnd()) {
@@ -202,12 +205,9 @@ bool kddrescueviewPart::openFile()
         if (conversion_ok)
         if (BlockStatus::isValid(tokens[2]))
         {
-            BlockPosition* pos = new BlockPosition(tokens[0]);
-            BlockSize* siz = new BlockSize(tokens[1]);
-            BlockStatus* status = new BlockStatus(tokens[2]);
-            //qDebug() << "Adding block:" << pos->data() << siz->data() << status->data();
-            QList<QStandardItem*> block_data = { pos, siz, status };
-            m_rescue_map->appendRow(block_data);
+            positions.append(BlockPosition(tokens[0]));
+            sizes.append(BlockSize(tokens[1]));
+            statuses.append(BlockStatus(tokens[2]));
             continue;
         }
         /*
@@ -227,26 +227,24 @@ bool kddrescueviewPart::openFile()
 
     file.close();
 
-    for(int row = 0; row+1 < m_rescue_map->rowCount(); ++row)
+    for(int row = 0; row+1 < positions.count(); ++row)
     {
-        qint64 block_start = m_rescue_map->data(m_rescue_map->index(row, 0), Qt::UserRole).value<qint64>();
-        qint64 block_size = m_rescue_map->data(m_rescue_map->index(row, 1), Qt::UserRole).value<qint64>();
-        qint64 block_finish = block_start + block_size;
-        qint64 next_block_start = m_rescue_map->data(m_rescue_map->index(row+1, 0), Qt::UserRole).value<qint64>();
+        BlockPosition block_start = positions[row];
+        BlockSize block_size = sizes[row];
+        BlockPosition block_finish = block_start + block_size;
+        BlockPosition next_block_start = positions[row+1];
         QString error;
         if ( block_finish != next_block_start )
         {
             qDebug() << "Error, next block not contiguous!";
-            qDebug() << QString::number(block_start, 16) << QString::number(block_size, 16);
-            qDebug() << QString::number(next_block_start, 16);
+            qDebug() << block_start << " + " << block_size << " =! " << next_block_start;
             return false;
         }
 
     }
+    m_rescue_map->setMap(positions, sizes, statuses);
 
     return true;
-
-
 }
 
 

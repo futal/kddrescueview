@@ -22,21 +22,35 @@
 #ifndef RESCUE_MAP_H
 #define RESCUE_MAP_H
 
-#include <QStandardItemModel>
+#include <QAbstractTableModel>
 #include "block_position.h"
 #include "block_size.h"
+#include "block_status.h"
 
-class RescueMap : public QStandardItemModel
+class RescueMap : public QAbstractTableModel
 {
+    Q_OBJECT
 public:
     RescueMap(QObject *parent = nullptr);
-    RescueMap(const RescueMap &other);
-    ~RescueMap();
-    
-    RescueMap* extract(BlockPosition start, BlockSize size) const;
 
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+
+    void setMap(const QVector<BlockPosition> &positions, const QVector<BlockSize> &sizes, const QVector<BlockStatus> &statuses);
+    RescueMap* extract(BlockPosition start, BlockSize size) const;
     BlockPosition start() const;
     BlockSize size() const;
+
+    friend QDebug operator<<(QDebug dbg, const RescueMap &map);
+private:
+    int m_columns;
+    int m_rows;
+    QVector<BlockPosition> m_positions;
+    QVector<BlockSize> m_sizes;
+    QVector<BlockStatus> m_statuses;
 };
 
 QDebug operator<<(QDebug dbg, const RescueMap &map);  // prettify debug output
