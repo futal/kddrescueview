@@ -23,12 +23,12 @@
 
 SquareColor::SquareColor(RescueTotals * totals)
 {
-    qint64 nontried_size = totals->nontried().data(Qt::DisplayRole).value<qint64>();
-    qint64 nontrimmed_size = totals->nontrimmed().data(Qt::DisplayRole).value<qint64>();
-    qint64 nonscraped_size = totals->nonscraped().data(Qt::DisplayRole).value<qint64>();
-    qint64 badsectors_size = totals->badsectors().data(Qt::DisplayRole).value<qint64>();
-    qint64 recovered_size = totals->recovered().data(Qt::DisplayRole).value<qint64>();
-    qint64 unknown_size = totals->unknown().data(Qt::DisplayRole).value<qint64>();
+    qint64 nontried_size = totals->nontried().data();
+    qint64 nontrimmed_size = totals->nontrimmed().data();
+    qint64 nonscraped_size = totals->nonscraped().data();
+    qint64 badsectors_size = totals->badsectors().data();
+    qint64 recovered_size = totals->recovered().data();
+    qint64 unknown_size = totals->unknown().data();
     
     int color_count = 0;
     int red = 0;

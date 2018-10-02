@@ -37,20 +37,18 @@ RescueTotals::RescueTotals(const RescueMap* map)
 {
     this->reset();
     
-    for(int row = 0; row < map->rowCount(); ++row) 
+    for(int row = 0; row < map->m_sizes.count(); ++row)
     {
-        // Size position : not used
-        BlockSize *size = dynamic_cast<BlockSize*>(map->item(row, 1));
-        BlockStatus *status = dynamic_cast<BlockStatus*>(map->item(row, 2));
-        char status_char = status->data(Qt::DisplayRole).toString().at(0).toLatin1();
+        BlockSize size = BlockSize(map->m_sizes[row]);
+        char status_char = map->m_statuses[row].data().at(0).toLatin1();
         switch(status_char)
         {
-            case '?': m_nontried += (*size); break;
-            case '*': m_nontrimmed += (*size); break;
-            case '/': m_nonscraped += (*size); break;
-            case '-': m_badsectors += (*size); break;
-            case '+': m_recovered += (*size); break;
-            default: m_unknown += (*size);
+            case '?': m_nontried += size; break;
+            case '*': m_nontrimmed += size; break;
+            case '/': m_nonscraped += size; break;
+            case '-': m_badsectors += size; break;
+            case '+': m_recovered += size; break;
+            default: m_unknown += size;
         }
     }
 };

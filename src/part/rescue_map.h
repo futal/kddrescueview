@@ -27,6 +27,9 @@
 #include "block_size.h"
 #include "block_status.h"
 
+class RescueTotals;
+
+
 class RescueMap : public QAbstractTableModel
 {
     Q_OBJECT
@@ -44,6 +47,7 @@ public:
     BlockPosition start() const;
     BlockSize size() const;
 
+    friend class RescueTotals;
     friend QDebug operator<<(QDebug dbg, const RescueMap &map);
 private:
     int m_columns;

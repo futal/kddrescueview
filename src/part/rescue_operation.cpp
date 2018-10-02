@@ -23,12 +23,12 @@
 #include <QDebug>
 
 RescueOperation::RescueOperation()
-    :QStandardItem()
+    :m_operation("U")
 {
 }
 
 RescueOperation::RescueOperation(const RescueOperation &other)
-    :QStandardItem(other)
+    :m_operation(other.m_operation)
 {
 }
 
@@ -41,7 +41,7 @@ RescueOperation::RescueOperation(QString operation)
 {
     if (RescueOperation::isValid(operation))
     {
-        setData(QVariant(operation), Qt::DisplayRole);
+        m_operation = operation;
     }
 }
 
@@ -49,22 +49,22 @@ void RescueOperation::setOperation(QString operation)
 {
     if (RescueOperation::isValid(operation))
     {
-        setData(QVariant(operation), Qt::DisplayRole);
+        m_operation = operation;
     }
     else
     {
-        setData(QVariant(), Qt::DisplayRole);
+        m_operation = "U";
     }
 }
 
-int RescueOperation::type() const
+QString RescueOperation::data() const
 {
-    return UserType+3;
+    return m_operation;
 }
 
 bool RescueOperation::isValid() const
 {
-    return operations.count(data(Qt::DisplayRole).toString());
+    return operations.count(m_operation);
 }
 
 bool RescueOperation::isValid(QString s)  /* static method */
@@ -74,7 +74,6 @@ bool RescueOperation::isValid(QString s)  /* static method */
 
 QDebug operator<<(QDebug dbg, const RescueOperation &o)
 {
-    QString operation = o.data(Qt::DisplayRole).toString();
-    dbg.nospace() << "Operation(" << operation << ": " << operations.value(operation, "Unknown operation") << ")";
+    dbg.nospace() << "Operation(" << o.m_operation << ": " << operations.value(o.m_operation, "Unknown operation") << ")";
     return dbg.maybeSpace();
 }

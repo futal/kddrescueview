@@ -23,6 +23,10 @@
 #include "block_position.h"
 #include "block_size.h"
 #include "block_status.h"
+#include "rescue_totals.h"
+#include "square_color.h"
+
+#include <cmath>
 #include <QDebug>
 
 RescueMap::RescueMap(QObject *parent)
@@ -33,16 +37,44 @@ RescueMap::RescueMap(QObject *parent)
 
 int RescueMap::rowCount(const QModelIndex & /* parent */) const
 {
+    return 10;
+/*
+    // Standard three-column table (position, size, status)
     return m_positions.count();
+ */
 }
 
 int RescueMap::columnCount(const QModelIndex & /* parent */) const
 {
-    return 3;
+    return 10;
+
+    /*
+        // Standard three-column table (position, size, status)
+        return 3;
+     */
+
 }
 
 QVariant RescueMap::data(const QModelIndex &index, int role) const
 {
+    if (!index.isValid() || role != Qt::DisplayRole)
+        return QVariant();
+
+    // for a 10x10 grid
+    double max_squares = rowCount() * columnCount();
+    BlockPosition map_start_position = start();
+    BlockSize map_size = size();
+    BlockSize sector_size = 512;
+    BlockSize square_size = sector_size * ceil(size()/sector_size/max_squares);
+    int square_number = columnCount() * index.row() + index.column();
+
+    BlockPosition square_start(map_start_position + square_size * square_number);
+    RescueMap *square_map = extract(square_start, BlockSize(square_size));
+    RescueTotals square_totals(square_map);
+    SquareColor* square_color = new SquareColor(&square_totals);
+    return *square_color;
+
+/* // Standard three-column table (position, size, status)
     if (!index.isValid() || role != Qt::DisplayRole)
         return QVariant();
     QVariant result;
@@ -50,10 +82,14 @@ QVariant RescueMap::data(const QModelIndex &index, int role) const
     if (index.column() == 1) result.setValue(m_sizes[index.row()].data());
     if (index.column() == 2) result.setValue(m_statuses[index.row()].data());
     return result;
+*/
 }
 
-QVariant RescueMap::headerData(int section, Qt::Orientation orientation, int role) const
+QVariant RescueMap::headerData(int /* section */, Qt::Orientation /* orientation */, int /* role */) const
 {
+    return QVariant();
+
+/* // Standard three-column table (position, size, status)
     if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
     {
         if (section == 0) return "Position";
@@ -61,6 +97,7 @@ QVariant RescueMap::headerData(int section, Qt::Orientation orientation, int rol
         if (section == 2) return "Status";
     }
     return QVariant();
+ */
 }
 
 void RescueMap::setMap(const QVector<BlockPosition> &positions, const QVector<BlockSize> &sizes, const QVector<BlockStatus> &statuses)
@@ -83,7 +120,7 @@ RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
     QVector<BlockSize> sizes;
     QVector<BlockStatus> statuses;
     
-    for(int row = 0; row < this->rowCount(); ++row) 
+    for(int row = 0; row < m_positions.count(); ++row)
     {
         BlockPosition extract_start = p;
         BlockSize extract_size = s;
@@ -161,7 +198,7 @@ RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
 
 BlockPosition RescueMap::start() const
 {
-    if (hasIndex(0,0))
+    if (m_positions.count())
     {
         return m_positions[0];
     }
@@ -170,9 +207,9 @@ BlockPosition RescueMap::start() const
 
 BlockSize RescueMap::size() const
 {
-    int last_row = rowCount() - 1;
-    if (hasIndex(last_row, 0) && hasIndex(last_row, 1))
+    if (m_positions.count() && m_sizes.count())
     {
+        int last_row = m_positions.count() - 1;
         return BlockSize( m_positions[last_row] + m_sizes[last_row] - start() );
     }
     return BlockSize();
@@ -181,7 +218,7 @@ BlockSize RescueMap::size() const
 QDebug operator<<(QDebug dbg, const RescueMap &map)
 {
     dbg << "RescueMap" << endl;
-    for(int row = 0; row < map.rowCount(); ++row)
+    for(int row = 0; row < map.m_positions.count(); ++row)
     {
         dbg << map.m_positions[row] << " " << map.m_sizes[row] << " " << map.m_statuses[row] << endl;
     }

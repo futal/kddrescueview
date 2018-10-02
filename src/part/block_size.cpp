@@ -21,6 +21,7 @@
 
 #include "block_size.h"
 #include "block_position.h"
+#include <QDebug>
 
 BlockSize::BlockSize()
     :m_size(-1)
@@ -66,6 +67,33 @@ BlockSize BlockSize::operator+(const BlockSize &size) const
 void BlockSize::operator+=(const BlockSize &size)
 {
     m_size += size.m_size;
+}
+
+BlockSize BlockSize::operator/(const BlockSize &other) const
+{
+    if (!other.m_size)
+    {
+        qDebug() << "Error: cannot divide by a 0 size." << endl;
+        return 0;
+    }
+    qint64 result = m_size / other.m_size;
+    qint64 rest = m_size % other.m_size;
+    if ( rest != 0 )
+    {
+        qDebug() << "Error: " << *this << " is not a multiple of " << other << ": rest is " << rest;
+        return 0;
+    }
+    return BlockSize(result);
+}
+
+double BlockSize::operator/(const double &d) const
+{
+    return m_size / d;
+}
+
+BlockSize BlockSize::operator*(const int &i) const
+{
+    return BlockSize(m_size * i);
 }
 
 QDebug operator<<(QDebug dbg, const BlockSize &s)

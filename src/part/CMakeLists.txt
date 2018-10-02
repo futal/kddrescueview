@@ -9,8 +9,8 @@ set(kddrescueview_PART_SRCS
 #    rescue_map_widget.cpp
     rescue_operation.cpp
     rescue_status.cpp
-#    rescue_totals.cpp
-#    square_color.cpp
+    rescue_totals.cpp
+    square_color.cpp
 )
 
 add_library(kddrescueviewpart MODULE ${kddrescueview_PART_SRCS})

@@ -53,6 +53,9 @@ public:
     void operator+=(const BlockSize &other);        // for "size += size1"
 //    bool operator==(const BlockSize &other) const;     // for "size1 == size2"
 //    BlockSize operator-(const BlockSize &other) const; // for "size = size1 - size2"
+    BlockSize operator/(const BlockSize &other) const;
+    double operator/(const double &d) const;
+    BlockSize operator*(const int &i) const;
 
     friend class BlockPosition;
     friend QDebug operator<<(QDebug dbg, const BlockSize &size);
