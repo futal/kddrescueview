@@ -51,6 +51,8 @@ public:
      */
     ~kddrescueviewPart() override;
 
+public slots:
+    void updateView();
 
 protected: // KParts::ReadOnlyPart API
     bool openFile() override;
@@ -60,9 +62,7 @@ private:
 
 private:
     QTableView* m_view;
-
     RescueMap* m_rescue_map;
-
     RescueStatus m_rescue_status;
 };
 

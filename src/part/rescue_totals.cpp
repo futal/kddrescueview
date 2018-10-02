@@ -22,6 +22,7 @@
 #include "rescue_totals.h"
 #include "block_size.h"
 #include "block_status.h"
+#include <QDebug>
 
 RescueTotals::RescueTotals()
     :m_nontried(0),
@@ -34,13 +35,12 @@ RescueTotals::RescueTotals()
 }
 
 RescueTotals::RescueTotals(const RescueMap* map)
+    :RescueTotals()
 {
-    this->reset();
-    
-    for(int row = 0; row < map->m_sizes.count(); ++row)
+    for(int line = 0; line < map->m_sizes.count(); ++line)
     {
-        BlockSize size = BlockSize(map->m_sizes[row]);
-        char status_char = map->m_statuses[row].data().at(0).toLatin1();
+        BlockSize size = BlockSize(map->m_sizes[line]);
+        char status_char = map->m_statuses[line].data().at(0).toLatin1();
         switch(status_char)
         {
             case '?': m_nontried += size; break;

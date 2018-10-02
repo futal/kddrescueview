@@ -34,8 +34,6 @@ class RescueTotals
 {
 public:
     RescueTotals();
-//    RescueTotals(const RescueTotals &);
-//    ~RescueTotals();
 
     RescueTotals(const RescueMap* map);
     

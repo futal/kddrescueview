@@ -4,6 +4,7 @@ set(kddrescueview_PART_SRCS
     block_position.cpp
     block_size.cpp
     block_status.cpp
+    block_delegate.cpp
     kddrescueviewpart.cpp
     rescue_map.cpp
 #    rescue_map_widget.cpp

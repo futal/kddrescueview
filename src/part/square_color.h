@@ -32,10 +32,15 @@
 class SquareColor : public QColor
 {
 public:
-    SquareColor(RescueTotals * totals);
+    // to be integrated in the meta-objet system
+    SquareColor();
+    SquareColor(const SquareColor &other);
+    ~SquareColor();
+
+    SquareColor(RescueTotals &totals);
 };
 
-// Q_DECLARE_METATYPE(SquareColor);
+Q_DECLARE_METATYPE(SquareColor);
 
 QDebug operator<<(QDebug dbg, const SquareColor &c);
 

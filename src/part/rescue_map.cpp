@@ -28,6 +28,7 @@
 
 #include <cmath>
 #include <QDebug>
+#include <QSize>
 
 RescueMap::RescueMap(QObject *parent)
     : QAbstractTableModel(parent)
@@ -57,22 +58,22 @@ int RescueMap::columnCount(const QModelIndex & /* parent */) const
 
 QVariant RescueMap::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || role != Qt::DisplayRole)
+    if (!index.isValid())
         return QVariant();
 
-    // for a 10x10 grid
-    double max_squares = rowCount() * columnCount();
-    BlockPosition map_start_position = start();
-    BlockSize map_size = size();
-    BlockSize sector_size = 512;
-    BlockSize square_size = sector_size * ceil(size()/sector_size/max_squares);
-    int square_number = columnCount() * index.row() + index.column();
-
-    BlockPosition square_start(map_start_position + square_size * square_number);
-    RescueMap *square_map = extract(square_start, BlockSize(square_size));
-    RescueTotals square_totals(square_map);
-    SquareColor* square_color = new SquareColor(&square_totals);
-    return *square_color;
+    if (role == Qt::BackgroundRole)
+    {
+        double max_squares = rowCount() * columnCount();
+        BlockSize sector_size = 512;
+        BlockSize square_size = sector_size * ceil(size()/sector_size/max_squares);
+        int square_number = columnCount() * index.row() + index.column();
+        BlockPosition square_start(start() + square_size * square_number);
+        RescueMap* square_map = extract(square_start, BlockSize(square_size));
+        RescueTotals square_totals(square_map);
+        SquareColor square_color(square_totals);
+        return square_color;
+    }
+    return QVariant();
 
 /* // Standard three-column table (position, size, status)
     if (!index.isValid() || role != Qt::DisplayRole)
@@ -85,8 +86,11 @@ QVariant RescueMap::data(const QModelIndex &index, int role) const
 */
 }
 
-QVariant RescueMap::headerData(int /* section */, Qt::Orientation /* orientation */, int /* role */) const
+QVariant RescueMap::headerData(int /* section */, Qt::Orientation /* orientation */, int role) const
 {
+    // for grid view
+    if (role == Qt::SizeHintRole)
+        return QSize(1, 1);
     return QVariant();
 
 /* // Standard three-column table (position, size, status)

@@ -21,14 +21,29 @@
 
 #include "square_color.h"
 
-SquareColor::SquareColor(RescueTotals * totals)
+SquareColor::SquareColor()
+    :QColor()
 {
-    qint64 nontried_size = totals->nontried().data();
-    qint64 nontrimmed_size = totals->nontrimmed().data();
-    qint64 nonscraped_size = totals->nonscraped().data();
-    qint64 badsectors_size = totals->badsectors().data();
-    qint64 recovered_size = totals->recovered().data();
-    qint64 unknown_size = totals->unknown().data();
+}
+
+SquareColor::SquareColor(const SquareColor &other)
+    :QColor(other)
+{
+}
+
+SquareColor::~SquareColor()
+{
+}
+
+SquareColor::SquareColor(RescueTotals &totals)
+    :SquareColor()
+{
+    qint64 nontried_size = totals.nontried().data();
+    qint64 nontrimmed_size = totals.nontrimmed().data();
+    qint64 nonscraped_size = totals.nonscraped().data();
+    qint64 badsectors_size = totals.badsectors().data();
+    qint64 recovered_size = totals.recovered().data();
+    qint64 unknown_size = totals.unknown().data();
     
     int color_count = 0;
     int red = 0;

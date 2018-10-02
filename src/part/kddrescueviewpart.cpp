@@ -26,6 +26,7 @@
 #include "rescue_map.h"
 #include "block_status.h"
 #include "block_position.h"
+#include "block_delegate.h"
 
 // KF headers
 #include <KPluginFactory>
@@ -38,10 +39,10 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QTextStream>
-#include <QStandardItemModel>
 #include <QtDebug>
 #include <QRegularExpression>
 #include <QTableView>
+#include <QtWidgets>
 
 
 
@@ -62,19 +63,55 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     m_rescue_map = new RescueMap(this);
     m_rescue_status = RescueStatus();
 
+/*
     // set internal UI
     m_view = new QTableView(parentWidget);
     m_view->setModel(m_rescue_map);
     setWidget(m_view);
-
+*/
     // set KXMLUI resource file
     setXMLFile(QStringLiteral("kddrescueviewpartui.rc"));
 
     // setup actions
     setupActions();
 
+    QWidget *centralWidget = new QWidget;
 
-    /* TODO: draw on QWidget based on the model */
+    m_view = new QTableView;
+    m_view->setShowGrid(true);
+    m_view->horizontalHeader()->hide();
+    m_view->verticalHeader()->hide();
+    m_view->horizontalHeader()->setMinimumSectionSize(1);
+    m_view->verticalHeader()->setMinimumSectionSize(1);
+    m_view->setModel(m_rescue_map);
+
+    BlockDelegate *delegate = new BlockDelegate(this);
+    m_view->setItemDelegate(delegate);
+
+    QLabel *squareSizeLabel = new QLabel(tr("Square size:"));
+    QSpinBox *squareSizeSpinBox = new QSpinBox;
+    squareSizeSpinBox->setMinimum(4);
+    squareSizeSpinBox->setMaximum(32);
+    squareSizeSpinBox->setValue(8);
+
+    connect(squareSizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            delegate, &BlockDelegate::setSquareSize);
+    connect(squareSizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &kddrescueviewPart::updateView);
+
+    QHBoxLayout *controlsLayout = new QHBoxLayout;
+    controlsLayout->addWidget(squareSizeLabel);
+    controlsLayout->addWidget(squareSizeSpinBox);
+    controlsLayout->addStretch(1);
+
+    QVBoxLayout *mainLayout = new QVBoxLayout;
+    mainLayout->addWidget(m_view);
+    mainLayout->addLayout(controlsLayout);
+    centralWidget->setLayout(mainLayout);
+
+    setWidget(centralWidget);
+
+    updateView();
 }
 
 kddrescueviewPart::~kddrescueviewPart()
@@ -84,6 +121,13 @@ kddrescueviewPart::~kddrescueviewPart()
 void kddrescueviewPart::setupActions()
 {
 }
+
+void kddrescueviewPart::updateView()
+{
+    m_view->resizeColumnsToContents();
+    m_view->resizeRowsToContents();
+}
+
 
 bool kddrescueviewPart::openFile()
 {
