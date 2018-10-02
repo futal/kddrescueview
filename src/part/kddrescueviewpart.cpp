@@ -20,7 +20,6 @@
  */
 
 #include "kddrescueviewpart.h"
-#include "rescue_map_widget.h"
 #include "rescue_status.h"
 #include "rescue_operation.h"
 #include "rescue_map.h"
