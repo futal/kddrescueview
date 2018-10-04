@@ -1,8 +1,7 @@
-Kddrescueview
-=============
+# Kddrescueview
 
-Description
------------
+
+## Description
 
 Kddrescueview is a graphical viewer for [GNU 
 ddrescue](https://www.gnu.org/software/ddrescue/) mapfiles. It shows damaged 
@@ -20,8 +19,7 @@ This program is free software released under the GNU GPL version 2 or (at your
 option) version 3 or any later version accepted by the membership of KDE e.V.
 
 
-Development goal
-----------------
+## Development goal
 
 I first had a look at Martin Bittermann's 
 [ddrescueview](https://sourceforge.net/projects/ddrescueview/) source code a 
@@ -59,41 +57,42 @@ So far the program is usable but a bit slow to refresh with a full screen
 window.
 
 
-How To Build This Project
--------------------------
+## How To Build This Project
 
---- On Unix:
+### On Unix:
 
-cd kddrescueview
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=$PROJECTINSTALLDIR -DCMAKE_BUILD_TYPE=Debug ..   <- do not forget the ..
-make
-make install or su -c 'make install'
+    cd kddrescueview
+    mkdir build
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=$PROJECTINSTALLDIR -DCMAKE_BUILD_TYPE=Debug ..   <- do not forget the ..
+    make
+    make install or su -c 'make install
 
 where $PROJECTINSTALLDIR points to your installation prefix.
 
 to uninstall the project:
-make uninstall or su -c 'make uninstall'
+
+    make uninstall or su -c 'make uninstall'
 
 Note: you can use another build path. Then cd in your build dir and:
-export KDE_SRC=path_to_your_src
-cmake $KDE_SRC -DCMAKE_INSTALL_PREFIX=$PROJECTINSTALLDIR 
--DCMAKE_BUILD_TYPE=Debug
 
---- On Windows (not tested):
+    export KDE_SRC=path_to_your_src
+    cmake $KDE_SRC -DCMAKE_INSTALL_PREFIX=$PROJECTINSTALLDIR -DCMAKE_BUILD_TYPE=Debug
 
-cd kddrescueview
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=%PROJECTINSTALLDIR% -DCMAKE_BUILD_TYPE=Debug ..  <- do not forget the ..
-[n]make
-[n]make install
+### On Windows (not tested):
+
+    cd kddrescueview
+    mkdir build
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=%PROJECTINSTALLDIR% -DCMAKE_BUILD_TYPE=Debug ..  <- do not forget the ..
+    [n]make
+    [n]make install
 
 where %PROJECTINSTALLDIR% points to your installation prefix.
 
 to uninstall the project:
-[n]make uninstall
+
+    [n]make uninstall
 
 Note: use nmake if you're building with the Visual Studio compiler, or make
 if you're using the minGW compiler
