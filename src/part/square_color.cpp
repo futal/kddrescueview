@@ -20,6 +20,8 @@
  */
 
 #include "square_color.h"
+#include "rescue_totals.h"
+
 
 SquareColor::SquareColor()
     :QColor()
@@ -35,7 +37,7 @@ SquareColor::~SquareColor()
 {
 }
 
-SquareColor::SquareColor(RescueTotals &totals)
+SquareColor::SquareColor(const RescueTotals &totals)
     :SquareColor()
 {
     qint64 nontried_size = totals.nontried().data();

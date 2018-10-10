@@ -25,13 +25,14 @@
 // #include "rescue_map_widget.h"
 #include "rescue_status.h"
 #include "rescue_map.h"
+#include "rescue_map_view.h"
 
 // KF headers
 #include <KParts/ReadOnlyPart>
 
 class QWidget;
 class QAction;
-class QTableView;
+
 
 /**
  * @short kddrescueview Part
@@ -41,18 +42,8 @@ class kddrescueviewPart : public KParts::ReadOnlyPart
     Q_OBJECT
 
 public:
-    /**
-     * Default constructor, with arguments as expected by KPluginFactory
-     */
     kddrescueviewPart(QWidget* parentWidget, QObject* parent, const QVariantList& arg);
-
-    /**
-     * Destructor
-     */
     ~kddrescueviewPart() override;
-
-public slots:
-    void updateView();
 
 protected: // KParts::ReadOnlyPart API
     bool openFile() override;
@@ -61,7 +52,7 @@ private:
     void setupActions();
 
 private:
-    QTableView* m_view;
+    RescueMapView* m_view;
     RescueMap* m_rescue_map;
     RescueStatus m_rescue_status;
 };

@@ -32,28 +32,19 @@
 
 RescueMap::RescueMap(QObject *parent)
     : QAbstractTableModel(parent)
+    , m_columns(1)
+    , m_rows(1)
 {
-    // this->setHorizontalHeaderLabels({"Position", "Size", "Status"});
 }
 
 int RescueMap::rowCount(const QModelIndex & /* parent */) const
 {
-    return 10;
-/*
-    // Standard three-column table (position, size, status)
-    return m_positions.count();
- */
+    return m_rows;
 }
 
 int RescueMap::columnCount(const QModelIndex & /* parent */) const
 {
-    return 10;
-
-    /*
-        // Standard three-column table (position, size, status)
-        return 3;
-     */
-
+    return m_columns;
 }
 
 QVariant RescueMap::data(const QModelIndex &index, int role) const
@@ -73,6 +64,12 @@ QVariant RescueMap::data(const QModelIndex &index, int role) const
         SquareColor square_color(square_totals);
         return square_color;
     }
+
+    if (role == Qt::SizeHintRole)
+    {
+        return QSize(8, 8);
+    }
+    
     return QVariant();
 
 /* // Standard three-column table (position, size, status)
@@ -124,17 +121,17 @@ RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
     QVector<BlockSize> sizes;
     QVector<BlockStatus> statuses;
     
-    for(int row = 0; row < m_positions.count(); ++row)
+    for(int line = 0; line < m_positions.count(); ++line)
     {
         BlockPosition extract_start = p;
         BlockSize extract_size = s;
         BlockPosition extract_finish = extract_start + extract_size;
         
-        BlockPosition block_start = m_positions[row];
-        BlockSize block_size = m_sizes[row];
+        BlockPosition block_start = m_positions[line];
+        BlockSize block_size = m_sizes[line];
         BlockPosition block_finish = block_start + block_size;
         
-        BlockStatus block_status = m_statuses[row];
+        BlockStatus block_status = m_statuses[line];
         
         // case 1: block_start < block_finish < extract_start < extract_finish
         // nothing to extract yet
@@ -217,6 +214,14 @@ BlockSize RescueMap::size() const
         return BlockSize( m_positions[last_row] + m_sizes[last_row] - start() );
     }
     return BlockSize();
+}
+
+void RescueMap::setDimensions(int columns, int rows)
+{
+    beginResetModel();
+    m_columns = columns;
+    m_rows = rows;
+    endResetModel();
 }
 
 QDebug operator<<(QDebug dbg, const RescueMap &map)

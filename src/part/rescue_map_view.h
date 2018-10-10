@@ -19,32 +19,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SQUARE_COLOR_H
-#define SQUARE_COLOR_H
+#ifndef RESCUE_MAP_VIEW_H
+#define RESCUE_MAP_VIEW_H
 
-#include <QColor>
-#include <QMetaType>
-
-class RescueTotals;
-
+#include <QTableView>
 
 /**
  * @todo write docs
  */
-
-class SquareColor : public QColor
+class RescueMapView : public QTableView
 {
-public:
-    // to be integrated in the meta-objet system
-    SquareColor();
-    SquareColor(const SquareColor &other);
-    ~SquareColor();
+    Q_OBJECT
 
-    SquareColor(const RescueTotals &totals);
+public:
+    RescueMapView(QWidget *parent = 0);
+    
+public slots:
+    void setSquareSize(int size);
+    
+protected:
+    void resizeEvent(QResizeEvent *event) override;
+    
+private:
+    int m_columns;
+    int m_rows;
+    int m_square_size;
+    
+    
 };
 
-Q_DECLARE_METATYPE(SquareColor);
-
-QDebug operator<<(QDebug dbg, const SquareColor &c);
-
-#endif // SQUARE_COLOR_H
+#endif // RESCUE_MAP_VIEW_H

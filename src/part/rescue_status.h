@@ -38,6 +38,7 @@ class RescueStatus
 {
 public:
     RescueStatus();
+    
     BlockPosition currentPosition() const { return m_current_position; }
     void setCurrentPosition(qint64 position);
     RescueOperation currentOperation() const { return m_current_operation; }

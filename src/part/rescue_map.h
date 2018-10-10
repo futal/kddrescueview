@@ -26,6 +26,7 @@
 #include "block_position.h"
 #include "block_size.h"
 #include "block_status.h"
+#include "square_color.h"
 
 class RescueTotals;
 
@@ -49,12 +50,20 @@ public:
 
     friend class RescueTotals;
     friend QDebug operator<<(QDebug dbg, const RescueMap &map);
+
+public slots:
+    void setDimensions(int columns, int rows);
+    
 private:
-    int m_columns;
-    int m_rows;
     QVector<BlockPosition> m_positions;
     QVector<BlockSize> m_sizes;
     QVector<BlockStatus> m_statuses;
+    
+    int m_columns;
+    int m_rows;
+    // QVector<SquareColor> m_square_colors;
+    // void computeSquareColors();
+    
 };
 
 QDebug operator<<(QDebug dbg, const RescueMap &map);  // prettify debug output

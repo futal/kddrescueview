@@ -25,6 +25,7 @@
 #include "rescue_map.h"
 #include "block_size.h"
 
+class RescueMap;
 
 /**
  * Store completion statistics for a recovery area, i.e. totals for each status

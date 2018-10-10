@@ -23,9 +23,9 @@
 #include "rescue_status.h"
 #include "rescue_operation.h"
 #include "rescue_map.h"
+#include "rescue_map_view.h"
 #include "block_status.h"
 #include "block_position.h"
-#include "block_delegate.h"
 
 // KF headers
 #include <KPluginFactory>
@@ -42,13 +42,14 @@
 #include <QRegularExpression>
 #include <QTableView>
 #include <QtWidgets>
+#include <QAction>
 
 
 
 K_PLUGIN_FACTORY(kddrescueviewPartFactory, registerPlugin<kddrescueviewPart>();)
 
 
-kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, const QVariantList& /*args*/)
+kddrescueviewPart::kddrescueviewPart(QWidget* /* parentWidget */, QObject* parent, const QVariantList& /*args*/)
     : KParts::ReadOnlyPart(parent)
 {
     // set component data
@@ -61,7 +62,7 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     // data model
     m_rescue_map = new RescueMap(this);
     m_rescue_status = RescueStatus();
-
+    
 /*
     // set internal UI
     m_view = new QTableView(parentWidget);
@@ -76,16 +77,8 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
 
     QWidget *centralWidget = new QWidget;
 
-    m_view = new QTableView;
-    m_view->setShowGrid(true);
-    m_view->horizontalHeader()->hide();
-    m_view->verticalHeader()->hide();
-    m_view->horizontalHeader()->setMinimumSectionSize(1);
-    m_view->verticalHeader()->setMinimumSectionSize(1);
+    m_view = new RescueMapView(centralWidget);
     m_view->setModel(m_rescue_map);
-
-    BlockDelegate *delegate = new BlockDelegate(this);
-    m_view->setItemDelegate(delegate);
 
     QLabel *squareSizeLabel = new QLabel(tr("Square size:"));
     QSpinBox *squareSizeSpinBox = new QSpinBox;
@@ -94,10 +87,9 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     squareSizeSpinBox->setValue(8);
 
     connect(squareSizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
-            delegate, &BlockDelegate::setSquareSize);
-    connect(squareSizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &kddrescueviewPart::updateView);
-
+            m_view, &RescueMapView::setSquareSize);
+  
+    
     QHBoxLayout *controlsLayout = new QHBoxLayout;
     controlsLayout->addWidget(squareSizeLabel);
     controlsLayout->addWidget(squareSizeSpinBox);
@@ -109,8 +101,6 @@ kddrescueviewPart::kddrescueviewPart(QWidget* parentWidget, QObject* parent, con
     centralWidget->setLayout(mainLayout);
 
     setWidget(centralWidget);
-
-    updateView();
 }
 
 kddrescueviewPart::~kddrescueviewPart()
@@ -119,21 +109,17 @@ kddrescueviewPart::~kddrescueviewPart()
 
 void kddrescueviewPart::setupActions()
 {
-}
-
-void kddrescueviewPart::updateView()
-{
-    m_view->resizeColumnsToContents();
-    m_view->resizeRowsToContents();
+    // see: https://techbase.kde.org/Development/Tutorials/Using_Actions
+    // see also: KStandardAction::redisplay
 }
 
 
+/*
+ * Parse a GNU ddrescue map file
+ * Map file structure is described at https://www.gnu.org/software/ddrescue/manual/ddrescue_manual.html#Mapfile-structure
+ */
 bool kddrescueviewPart::openFile()
 {
-    /* Parse a GNU ddrescue map file
-     * Map file structure is described at https://www.gnu.org/software/ddrescue/manual/ddrescue_manual.html#Mapfile-structure
-     */
-    
     QFile file(localFilePath());
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return false;
