@@ -22,6 +22,7 @@
 #include "rescue_map_view.h"
 #include "rescue_map.h"
 #include <QHeaderView>
+#include <QScrollBar>
 
 
 RescueMapView::RescueMapView(QWidget *parent)
@@ -31,18 +32,19 @@ RescueMapView::RescueMapView(QWidget *parent)
     setShowGrid(true);
     horizontalHeader()->hide();
     verticalHeader()->hide();
-    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     verticalHeader()->setSectionResizeMode(QHeaderView::Fixed); 
     verticalHeader()->setDefaultSectionSize(m_square_size); 
     horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed); 
     horizontalHeader()->setDefaultSectionSize(m_square_size);
+    setStyleSheet("QTableView { border: none; }");  // TODO: change background color to be the window border color
 }
 
 void RescueMapView::resizeEvent(QResizeEvent *event)
 {
-    int columns = std::max(width() / m_square_size - 1, 2);
-    int rows = std::max(height() / m_square_size - 1, 2);
+    int columns = std::max( (width() - verticalScrollBar()->width() - 1) / m_square_size, 1);
+    int rows = std::max( (height() - 1) / m_square_size, 1);
        
     if (columns == m_columns && rows == m_rows) {
         return;
