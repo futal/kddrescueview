@@ -37,8 +37,8 @@ class RescueMap : public QAbstractTableModel
 public:
     RescueMap(QObject *parent = nullptr);
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    int rowCount(const QModelIndex&) const override { return m_rows; }
+    int columnCount(const QModelIndex&) const override { return m_columns; }
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
@@ -61,8 +61,8 @@ private:
     
     int m_columns;
     int m_rows;
-    // QVector<SquareColor> m_square_colors;
-    // void computeSquareColors();
+    QVector<SquareColor> m_square_colors;
+    void computeSquareColors();
     
 };
 

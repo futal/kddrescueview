@@ -26,6 +26,7 @@
 SquareColor::SquareColor()
     :QColor()
 {
+    this->setRgb(211, 211, 211);
 }
 
 SquareColor::SquareColor(const SquareColor &other)
@@ -40,103 +41,43 @@ SquareColor::~SquareColor()
 SquareColor::SquareColor(const RescueTotals &totals)
     :SquareColor()
 {
-    qint64 nontried_size = totals.nontried().data();
-    qint64 nontrimmed_size = totals.nontrimmed().data();
-    qint64 nonscraped_size = totals.nonscraped().data();
-    qint64 badsectors_size = totals.badsectors().data();
-    qint64 recovered_size = totals.recovered().data();
-    qint64 unknown_size = totals.unknown().data();
+    const int nontried = totals.nontried().data() ? 1 : 0;
+    const int nontrimmed = totals.nontrimmed().data() ? 4 : 0;
+    const int nonscraped = totals.nonscraped().data() ? 10 : 0;
+    const int badsectors = totals.badsectors().data() ? 40 : 0;
+    const int recovered = totals.recovered().data() ? 2 : 0;
+    const int unknown = totals.unknown().data() ? 127 : 255;
     
-    int color_count = 0;
-    int red = 0;
-    int green = 0;
-    int blue = 0;
-    int alpha = 255;
+    const int color_count = nontried + nontrimmed + nonscraped + badsectors + recovered ;
     
-    if (nontried_size)
-    {
-        red   +=  1 * 0x40;
-        green +=  1 * 0x40;
-        blue  +=  1 * 0x40;
-        color_count += 1;
+    if (!color_count) {
+        this->setRgb(211, 211, 211);  // default to lightgray
     }
     
-    if (nontrimmed_size)
-    {
-        red   +=  4 * 0xff;
-        green +=  4 * 0xe0;
-        blue  +=  4 * 0x00;
-        color_count += 4;
-    }
+    int red =  ( nontried * 0x40 +
+                 nontrimmed * 0xff +
+                 nonscraped * 0x20 +
+                 badsectors * 0xff   // + recovered * 0x00
+               ) / color_count;
     
-    if (nonscraped_size)
-    {
-        red   += 10 * 0x20;
-        green += 10 * 0x20;
-        blue  += 10 * 0xff;
-        color_count +=10;
-    }
+    int green =  ( nontried * 0x40 +
+                   nontrimmed * 0xe0 +
+                   nonscraped * 0x20 + // badsectors * 0x00 + 
+                   recovered * 0xff 
+                 ) / color_count;
+    
+    int blue =  ( nontried * 0x40 + // nontrimmed * 0x00 +
+                nonscraped * 0xff   // + badsectors * 0x00 + recovered * 0x00
+                ) / color_count;
 
-    if (badsectors_size)
-    {
-        red   += 40 * 0xff;
-        green += 40 * 0x00;
-        blue  += 40 * 0x00;
-        color_count += 40;
-    }
+    int alpha = unknown;
     
-    if (recovered_size)
-    {
-        red   +=  2 * 0x00;
-        green +=  2 * 0xff;
-        blue  +=  2 * 0x00;
-        color_count += 2;
-    }
-    
-    if (unknown_size)
-    {
-        alpha = 127;
-    }
-    
-    if (color_count == 0)
-    {
-        alpha = 0;
-    }
-
-    if (color_count > 0)
-    {
-        red /= color_count;
-        green /= color_count;
-        blue /= color_count;
-    }
-    
-    if (red > 255)
-    {
-        qDebug() << "Error: red =" << red;
-        red = 255;
-    }
-
-    if (green > 255)
-    {
-        qDebug() << "Error: green =" << green;
-        green = 255;
-    }
-
-    if (blue > 255)
-    {
-        qDebug() << "Error: blue =" << blue;
-        blue = 255;
-    }
-
-    this->setRed(red);
-    this->setGreen(green);
-    this->setBlue(blue);
-    this->setAlpha(alpha);
+    this->setRgb(red, green, blue, alpha);
 }
 
 QDebug operator<<(QDebug dbg, const SquareColor &c)
 {
-    dbg.nospace() << "Color(" << c.red() << c.green() << c.blue() << c.alpha() << ")";
+    dbg.nospace() << "Color(" << c.red() << ", " << c.green() << ", " << c.blue() << ", " << c.alpha() << ")";
     return dbg.maybeSpace();
 
 }

@@ -34,17 +34,8 @@ RescueMap::RescueMap(QObject *parent)
     : QAbstractTableModel(parent)
     , m_columns(1)
     , m_rows(1)
+    , m_square_colors()
 {
-}
-
-int RescueMap::rowCount(const QModelIndex & /* parent */) const
-{
-    return m_rows;
-}
-
-int RescueMap::columnCount(const QModelIndex & /* parent */) const
-{
-    return m_columns;
 }
 
 QVariant RescueMap::data(const QModelIndex &index, int role) const
@@ -52,53 +43,23 @@ QVariant RescueMap::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
-    if (role == Qt::BackgroundRole)
-    {
-        double max_squares = rowCount() * columnCount();
-        BlockSize sector_size = 512;
-        BlockSize square_size = sector_size * ceil(size()/sector_size/max_squares);
-        int square_number = columnCount() * index.row() + index.column();
-        BlockPosition square_start(start() + square_size * square_number);
-        RescueMap* square_map = extract(square_start, BlockSize(square_size));
-        RescueTotals square_totals(square_map);
-        SquareColor square_color(square_totals);
-        return square_color;
+    if (role == Qt::BackgroundRole) {
+        int square = m_columns * index.row() + index.column();
+        return m_square_colors.at(square);
     }
-
-    if (role == Qt::SizeHintRole)
-    {
-        return QSize(8, 8);
+    
+    if (role == Qt::SizeHintRole) {
+        return QSize(1, 1);
     }
     
     return QVariant();
-
-/* // Standard three-column table (position, size, status)
-    if (!index.isValid() || role != Qt::DisplayRole)
-        return QVariant();
-    QVariant result;
-    if (index.column() == 0) result.setValue(m_positions[index.row()].data());
-    if (index.column() == 1) result.setValue(m_sizes[index.row()].data());
-    if (index.column() == 2) result.setValue(m_statuses[index.row()].data());
-    return result;
-*/
 }
 
 QVariant RescueMap::headerData(int /* section */, Qt::Orientation /* orientation */, int role) const
 {
-    // for grid view
     if (role == Qt::SizeHintRole)
         return QSize(1, 1);
     return QVariant();
-
-/* // Standard three-column table (position, size, status)
-    if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
-    {
-        if (section == 0) return "Position";
-        if (section == 1) return "Size";
-        if (section == 2) return "Status";
-    }
-    return QVariant();
- */
 }
 
 void RescueMap::setMap(const QVector<BlockPosition> &positions, const QVector<BlockSize> &sizes, const QVector<BlockStatus> &statuses)
@@ -107,13 +68,14 @@ void RescueMap::setMap(const QVector<BlockPosition> &positions, const QVector<Bl
     m_positions = positions;
     m_sizes = sizes;
     m_statuses = statuses;
+    computeSquareColors();
     endResetModel();
 }
 
 /*
  * Extract a sub map, e.g. the map corresponding to a square on the grid view
+ * Usage: showing the details of a square in block inspector
  */
-
 RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
 {
     RescueMap* map = new RescueMap();
@@ -121,8 +83,7 @@ RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
     QVector<BlockSize> sizes;
     QVector<BlockStatus> statuses;
     
-    for(int line = 0; line < m_positions.count(); ++line)
-    {
+    for(int line = 0; line < m_positions.count(); ++line) {
         BlockPosition extract_start = p;
         BlockSize extract_size = s;
         BlockPosition extract_finish = extract_start + extract_size;
@@ -135,15 +96,13 @@ RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
         
         // case 1: block_start < block_finish < extract_start < extract_finish
         // nothing to extract yet
-        if ( block_finish <= extract_start )
-        {
+        if ( block_finish <= extract_start ) {
             continue;  
         }
         
         // case 2: block_start < extract_start < block_finish < extract_finish
         // extract the beginning of the block
-        if ( block_start <= extract_start && extract_start < block_finish && block_finish <= extract_finish )
-        {
+        if ( block_start <= extract_start && extract_start < block_finish && block_finish <= extract_finish ) {
             positions.append(BlockPosition(extract_start));
             sizes.append(BlockSize(block_finish - extract_start));
             statuses.append(BlockStatus(block_status));
@@ -152,8 +111,7 @@ RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
         
         // case 3: block_start < extract_start < extract_finish < block_finish
         // the extract is entirely contained in the block
-        if ( block_start <= extract_start && extract_start < extract_finish && extract_finish <= block_finish )
-        {
+        if ( block_start <= extract_start && extract_start < extract_finish && extract_finish <= block_finish ) {
             positions.append(BlockPosition(extract_start));
             sizes.append(BlockSize(extract_size));
             statuses.append(BlockStatus(block_status));
@@ -163,8 +121,7 @@ RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
         
         // case 4: extract_start < block_start < block_finish < extract_finish )
         // the block is entirely contained in the extract
-        if ( extract_start <= block_start && block_finish <= extract_finish )
-        {
+        if ( extract_start <= block_start && block_finish <= extract_finish ) {
             positions.append(BlockPosition(block_start));
             sizes.append(BlockSize(block_size));
             statuses.append(BlockStatus(block_status));
@@ -173,8 +130,7 @@ RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
         
         // case 5: extract_start < block_start < extract_finish < block_finish )
         // extract the end of the block
-        if ( extract_start <= block_start && block_start < extract_finish && extract_finish <= block_finish )
-        {
+        if ( extract_start <= block_start && block_start < extract_finish && extract_finish <= block_finish ) {
             positions.append(BlockPosition(block_start));
             sizes.append(BlockSize(extract_finish - block_start));
             statuses.append(BlockStatus(block_status));
@@ -184,8 +140,7 @@ RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
 
         // case 6: extract_start < extract_finish < block_start < block_finish )
         // nothing to extract (any more)
-        if ( extract_finish <= block_start )
-        {
+        if ( extract_finish <= block_start ) {
             return map;
         }
         
@@ -199,19 +154,17 @@ RescueMap* RescueMap::extract(BlockPosition p, BlockSize s) const
 
 BlockPosition RescueMap::start() const
 {
-    if (m_positions.count())
-    {
-        return m_positions[0];
+    if (m_positions.count()) {
+        return m_positions.at(0);
     }
     return BlockPosition();
 }
 
 BlockSize RescueMap::size() const
 {
-    if (m_positions.count() && m_sizes.count())
-    {
+    if (m_positions.count() && m_sizes.count()) {
         int last_row = m_positions.count() - 1;
-        return BlockSize( m_positions[last_row] + m_sizes[last_row] - start() );
+        return BlockSize( m_positions.at(last_row) + m_sizes.at(last_row) - start() );
     }
     return BlockSize();
 }
@@ -219,9 +172,54 @@ BlockSize RescueMap::size() const
 void RescueMap::setDimensions(int columns, int rows)
 {
     beginResetModel();
-    m_columns = columns;
-    m_rows = rows;
+    m_columns = (columns > 0) ? columns : 1;
+    m_rows = (rows > 0) ? rows : 1;
+    computeSquareColors();
     endResetModel();
+}
+
+void RescueMap::computeSquareColors()
+{
+    m_square_colors.clear();                  // capacity preserved from Qt 5.7
+    const int squares = m_columns * m_rows;
+    m_square_colors.reserve(squares);
+    
+    const BlockSize sector_size = 512;
+    const BlockSize square_size = sector_size * ceil(size()/sector_size/squares);
+
+    if (!m_positions.count()) {
+        m_square_colors.fill(SquareColor(), squares);  // fill the grid with ligthgray
+        return;
+    }
+    
+    /* iteration over all the squares and all the mapfile lines */
+    RescueTotals square_totals;
+    BlockPosition section_start = start();
+    BlockPosition square_end = start() + square_size;
+
+    for (int square = 0, line = 0; square < squares && line < m_positions.count(); ) {
+        BlockPosition line_end = m_positions.at(line) + m_sizes.at(line);
+        
+        if (square_end <= line_end) {
+            // case 1: square_end <= line_end
+            // color can be computed and saved for the square
+            square_totals.add(square_end - section_start, m_statuses.at(line));
+            m_square_colors.append(SquareColor(square_totals));
+            square_totals.reset();
+            ++square;
+            if (square_end == line_end) { ++line; }
+            section_start = square_end;
+            square_end = square_end + square_size;
+        } 
+        else {
+            // case 2: square_end > line_end
+            // the square totals still have lines to process before computing the color
+            square_totals.add(line_end - section_start, m_statuses.at(line));
+            ++line;
+            section_start = line_end;
+        }
+    }
+    m_square_colors.append(SquareColor(square_totals));  // TODO: only if the loop ended on the second case
 }
 
 QDebug operator<<(QDebug dbg, const RescueMap &map)

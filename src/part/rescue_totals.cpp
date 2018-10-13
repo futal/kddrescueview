@@ -24,32 +24,12 @@
 #include "block_status.h"
 #include <QDebug>
 
-RescueTotals::RescueTotals()
-    :m_nontried(0),
-    m_nontrimmed(0),
-    m_nonscraped(0),
-    m_badsectors(0),
-    m_recovered(0),
-    m_unknown(0)
-{
-}
 
 RescueTotals::RescueTotals(const RescueMap* map)
     :RescueTotals()
 {
-    for(int line = 0; line < map->m_sizes.count(); ++line)
-    {
-        BlockSize size = BlockSize(map->m_sizes[line]);
-        char status_char = map->m_statuses[line].data().at(0).toLatin1();
-        switch(status_char)
-        {
-            case '?': m_nontried += size; break;
-            case '*': m_nontrimmed += size; break;
-            case '/': m_nonscraped += size; break;
-            case '-': m_badsectors += size; break;
-            case '+': m_recovered += size; break;
-            default: m_unknown += size;
-        }
+    for(int line = 0; line < map->m_sizes.count(); ++line) {
+        add(map->m_sizes.at(line), map->m_statuses.at(line));
     }
 };
 
@@ -61,6 +41,19 @@ void RescueTotals::reset()
     m_badsectors = 0;
     m_recovered = 0;
     m_unknown = 0;
+}
+
+void RescueTotals::add(BlockSize size, BlockStatus status)
+{
+    char status_char = status.data().at(0).toLatin1();
+    switch(status_char) {
+        case '?': m_nontried += size; break;
+        case '*': m_nontrimmed += size; break;
+        case '/': m_nonscraped += size; break;
+        case '-': m_badsectors += size; break;
+        case '+': m_recovered += size; break;
+        default: m_unknown += size;
+    }
 }
 
 /*

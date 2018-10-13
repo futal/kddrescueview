@@ -24,6 +24,7 @@
 
 #include "rescue_map.h"
 #include "block_size.h"
+#include "block_status.h"
 
 class RescueMap;
 
@@ -34,11 +35,9 @@ class RescueMap;
 class RescueTotals
 {
 public:
-    RescueTotals();
-
+    RescueTotals(): m_nontried(0), m_nontrimmed(0), m_nonscraped(0), m_badsectors(0), m_recovered(0), m_unknown(0) {}
     RescueTotals(const RescueMap* map);
     
-//    QList<QPair<String, qreal>> totals() const; // for Pie chart
     void reset();
     BlockSize nontried() const { return m_nontried; }
     BlockSize nontrimmed() const { return m_nontrimmed; }
@@ -46,6 +45,9 @@ public:
     BlockSize badsectors() const { return m_badsectors; }
     BlockSize recovered() const { return m_recovered; }
     BlockSize unknown() const { return m_unknown; }
+    void add(BlockSize size, BlockStatus status);
+
+    // QList<QPair<String, qreal>> totals() const; // for Pie chart
 
 private:
     BlockSize m_nontried;
