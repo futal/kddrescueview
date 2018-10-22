@@ -18,6 +18,8 @@ more features.
 This program is free software released under the GNU GPL version 2 or (at your 
 option) version 3 or any later version accepted by the membership of KDE e.V.
 
+![Screenshot](https://github.com/futal/kddrescueview/raw/master/doc/Screenshot.png "Screenshot")
+
 
 ## Development goal
 
