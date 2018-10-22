@@ -216,10 +216,10 @@ void RescueMap::computeSquareColors()
             // the square totals still have lines to process before computing the color
             square_totals.add(line_end - section_start, m_statuses.at(line));
             ++line;
+            if (line == m_positions.count()) { m_square_colors.append(SquareColor(square_totals)); }
             section_start = line_end;
         }
     }
-    m_square_colors.append(SquareColor(square_totals));  // TODO: only if the loop ended on the second case
 }
 
 QDebug operator<<(QDebug dbg, const RescueMap &map)

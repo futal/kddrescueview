@@ -51,7 +51,7 @@ SquareColor::SquareColor(const RescueTotals &totals)
     const int color_count = nontried + nontrimmed + nonscraped + badsectors + recovered ;
     
     if (!color_count) {
-        this->setRgb(211, 211, 211);  // default to lightgray
+        this->setRgb(211, 211, 211, 255);  // default to fully transparent (lightgray)
     }
     
     int red =  ( nontried * 0x40 +

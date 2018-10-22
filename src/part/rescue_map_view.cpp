@@ -38,13 +38,13 @@ RescueMapView::RescueMapView(QWidget *parent)
     verticalHeader()->setDefaultSectionSize(m_square_size); 
     horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed); 
     horizontalHeader()->setDefaultSectionSize(m_square_size);
-    setStyleSheet("QTableView { border: none; }");  // TODO: change background color to be the window border color
+    setStyleSheet(QString("QTableView { border: none; background: %1; }").arg(palette().color(QPalette::Window).name())); 
 }
 
 void RescueMapView::resizeEvent(QResizeEvent *event)
 {
-    int columns = std::max( (width() - verticalScrollBar()->width() - 1) / m_square_size, 1);
-    int rows = std::max( (height() - 1) / m_square_size, 1);
+    int columns = std::max( (width() - verticalScrollBar()->width()) / m_square_size, 1);
+    int rows = std::max( height()/ m_square_size, 1);
        
     if (columns == m_columns && rows == m_rows) {
         return;
