@@ -86,28 +86,22 @@ class HelloWorld2D:
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
 
-    def plot(self, points, type='line'):
+    def plot(self, points):
         data = points.astype('f4').tobytes()
         self.vbo.orphan()
         self.vbo.write(data)
-        if type == 'line':
-            self.ctx.line_width = 1.0
-            self.vao.render(moderngl.LINE_STRIP, vertices=len(data) // 24)
-        if type == 'points':
-            self.ctx.point_size = 3.0
-            self.vao.render(moderngl.POINTS, vertices=len(data) // 24)
+        self.vao.render(moderngl.TRIANGLES, vertices=len(data))
 
 
-def vertices():
-    x = np.linspace(-1.0, 1.0, 50)
-    y = np.random.rand(50) - 0.5
-    r = np.ones(50)
-    g = np.zeros(50)
-    b = np.zeros(50)
-    a = np.ones(50)
-    return np.dstack([x, y, r, g, b, a])
-
-verts = vertices()
+verts = np.array(
+    # upper left triangle  bottom right triangle
+    [ [-1.0, +1.0, -1.0,   +1.0, -1.0, +1.0],  # x
+      [+1.0, +1.0, -1.0,   +1.0, -1.0, -1.0],  # y
+      [ 1.0,  1.0,  1.0,    1.0,  1.0,  1.0],  # r
+      [ 0.0,  0.0,  0.0,    0.0,  0.0,  0.0],  # g
+      [ 0.0,  0.0,  0.0,    0.0,  0.0,  0.0],  # b
+      [ 1.0,  1.0,  1.0,    1.0,  1.0,  1.0],  # a
+    ]).T  # transpose for OpenGL
 
 class MyWidget(QModernGLWidget):
     def __init__(self):
