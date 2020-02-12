@@ -21,29 +21,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# Template from moderngl/examples/window_pyqt5.py and imported files
-#
-# MIT License
-#
-# Copyright (c) 2017-2020 Szabolcs Dombi
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-
-import numpy as np
 import sys
-from PyQt5 import QtWidgets
+import numpy as np
+from PyQt5 import QtWidgets, QtCore, QtOpenGL
 import moderngl
-from PyQt5 import QtGui, QtWidgets, QtCore, QtOpenGL
-
 
 class QModernGLWidget(QtOpenGL.QGLWidget):
     def __init__(self):
@@ -77,19 +58,22 @@ class HelloWorld2D:
         self.prog = self.ctx.program(
             vertex_shader='''
                 #version 330
-                uniform vec2 Pan;
+
                 in vec2 in_vert;
                 in vec4 in_color;
                 out vec4 v_color;
+
                 void main() {
                     v_color = in_color;
-                    gl_Position = vec4(in_vert - Pan, 0.0, 1.0);
+                    gl_Position = vec4(in_vert, 0.0, 1.0);
                 }
             ''',
             fragment_shader='''
                 #version 330
+                
                 in vec4 v_color;
                 out vec4 f_color;
+
                 void main() {
                     f_color = v_color;
                 }
@@ -98,9 +82,6 @@ class HelloWorld2D:
 
         self.vbo = ctx.buffer(reserve='4MB', dynamic=True)
         self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
-
-    def pan(self, pos):
-        self.prog['Pan'].value = pos
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
@@ -117,40 +98,6 @@ class HelloWorld2D:
             self.vao.render(moderngl.POINTS, vertices=len(data) // 24)
 
 
-class PanTool:
-    def __init__(self):
-        self.total_x = 0.0
-        self.total_y = 0.0
-        self.start_x = 0.0
-        self.start_y = 0.0
-        self.delta_x = 0.0
-        self.delta_y = 0.0
-        self.drag = False
-
-    def start_drag(self, x, y):
-        self.start_x = x
-        self.start_y = y
-        self.drag = True
-
-    def dragging(self, x, y):
-        if self.drag:
-            self.delta_x = (x - self.start_x) * 2.0
-            self.delta_y = (y - self.start_y) * 2.0
-
-    def stop_drag(self, x, y):
-        if self.drag:
-            self.dragging(x, y)
-            self.total_x -= self.delta_x
-            self.total_y += self.delta_y
-            self.delta_x = 0.0
-            self.delta_y = 0.0
-            self.drag = False
-
-    @property
-    def value(self):
-        return (self.total_x - self.delta_x, self.total_y + self.delta_y)
-
-
 def vertices():
     x = np.linspace(-1.0, 1.0, 50)
     y = np.random.rand(50) - 0.5
@@ -160,10 +107,7 @@ def vertices():
     a = np.ones(50)
     return np.dstack([x, y, r, g, b, a])
 
-
 verts = vertices()
-pan_tool = PanTool()
-
 
 class MyWidget(QModernGLWidget):
     def __init__(self):
@@ -180,23 +124,9 @@ class MyWidget(QModernGLWidget):
         self.scene.clear()
         self.scene.plot(verts)
 
-    def mousePressEvent(self, evt):
-        pan_tool.start_drag(evt.x() / 512, evt.y() / 512)
-        self.scene.pan(pan_tool.value)
-        self.update()
 
-    def mouseMoveEvent(self, evt):
-        pan_tool.dragging(evt.x() / 512, evt.y() / 512)
-        self.scene.pan(pan_tool.value)
-        self.update()
-
-    def mouseReleaseEvent(self, evt):
-        pan_tool.stop_drag(evt.x() / 512, evt.y() / 512)
-        self.scene.pan(pan_tool.value)
-        self.update()
-
-
-app = QtWidgets.QApplication(sys.argv)
-widget = MyWidget()
-widget.show()
-sys.exit(app.exec_())
+if __name__ == '__main__':
+    app = QtWidgets.QApplication(sys.argv)
+    widget = MyWidget()
+    widget.show()
+    sys.exit(app.exec_())
