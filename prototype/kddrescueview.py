@@ -59,29 +59,25 @@ class HelloWorld2D:
             vertex_shader='''
                 #version 330
 
-                in vec2 in_vert;
-                in vec4 in_color;
-                out vec4 v_color;
+                in vec2 vertices;
 
                 void main() {
-                    v_color = in_color;
-                    gl_Position = vec4(in_vert, 0.0, 1.0);
+                    gl_Position = vec4(vertices, 0.0, 1.0);
                 }
             ''',
             fragment_shader='''
                 #version 330
                 
-                in vec4 v_color;
-                out vec4 f_color;
+                out vec4 gl_FragColor;
 
                 void main() {
-                    f_color = v_color;
+                    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
                 }
             ''',
         )
 
         self.vbo = ctx.buffer(reserve='4MB', dynamic=True)
-        self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
+        self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'vertices')
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
@@ -93,15 +89,12 @@ class HelloWorld2D:
         self.vao.render(moderngl.TRIANGLES, vertices=len(data))
 
 
-verts = np.array(
+vertices = np.array(
     # upper left triangle  bottom right triangle
     [ [-1.0, +1.0, -1.0,   +1.0, -1.0, +1.0],  # x
       [+1.0, +1.0, -1.0,   +1.0, -1.0, -1.0],  # y
-      [ 1.0,  1.0,  1.0,    1.0,  1.0,  1.0],  # r
-      [ 0.0,  0.0,  0.0,    0.0,  0.0,  0.0],  # g
-      [ 0.0,  0.0,  0.0,    0.0,  0.0,  0.0],  # b
-      [ 1.0,  1.0,  1.0,    1.0,  1.0,  1.0],  # a
     ]).T  # transpose for OpenGL
+
 
 class MyWidget(QModernGLWidget):
     def __init__(self):
@@ -116,7 +109,7 @@ class MyWidget(QModernGLWidget):
     def render(self):
         self.screen.use()
         self.scene.clear()
-        self.scene.plot(verts)
+        self.scene.plot(vertices)
 
 
 if __name__ == '__main__':
