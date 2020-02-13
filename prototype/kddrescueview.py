@@ -26,33 +26,8 @@ import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtOpenGL
 import moderngl
 
-class QModernGLWidget(QtOpenGL.QGLWidget):
-    def __init__(self):
-        fmt = QtOpenGL.QGLFormat()
-        fmt.setVersion(3, 3)
-        fmt.setProfile(QtOpenGL.QGLFormat.CoreProfile)
-        fmt.setSampleBuffers(True)
-        self.timer = QtCore.QElapsedTimer()
-        super(QModernGLWidget, self).__init__(fmt, None)
 
-    def initializeGL(self):
-        pass
-
-    def paintGL(self):
-        self.ctx = moderngl.create_context()
-        self.screen = self.ctx.detect_framebuffer()
-        self.init()
-        self.render()
-        self.paintGL = self.render
-
-    def init(self):
-        pass
-
-    def render(self):
-        pass
-
-
-class HelloWorld2D:
+class Scene:
     def __init__(self, ctx, reserve='4MB'):
         self.ctx = ctx
         self.prog = self.ctx.program(
@@ -96,15 +71,30 @@ vertices = np.array(
     ]).T  # transpose for OpenGL
 
 
-class MyWidget(QModernGLWidget):
+class Widget(QtOpenGL.QGLWidget):
     def __init__(self):
-        super(MyWidget, self).__init__()
+        fmt = QtOpenGL.QGLFormat()
+        fmt.setVersion(3, 3)
+        fmt.setProfile(QtOpenGL.QGLFormat.CoreProfile)
+        fmt.setSampleBuffers(True)
+        self.timer = QtCore.QElapsedTimer()        
+        super(Widget, self).__init__(fmt, None)
         self.scene = None
+
+    def initializeGL(self):
+        pass
+
+    def paintGL(self):
+        self.ctx = moderngl.create_context()
+        self.screen = self.ctx.detect_framebuffer()
+        self.init()
+        self.render()
+        self.paintGL = self.render
 
     def init(self):
         self.resize(512, 512)
         self.ctx.viewport = (0, 0, 512, 512)
-        self.scene = HelloWorld2D(self.ctx)
+        self.scene = Scene(self.ctx)
 
     def render(self):
         self.screen.use()
@@ -114,6 +104,8 @@ class MyWidget(QModernGLWidget):
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
-    widget = MyWidget()
+    widget = Widget()
     widget.show()
     sys.exit(app.exec_())
+
+# QModernGLWidget
