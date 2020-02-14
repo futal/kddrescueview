@@ -81,9 +81,6 @@ class Widget(QtOpenGL.QGLWidget):
         super(Widget, self).__init__(fmt, None)
         self.scene = None
 
-    def initializeGL(self):
-        pass
-
     def paintGL(self):
         self.ctx = moderngl.create_context()
         self.screen = self.ctx.detect_framebuffer()
