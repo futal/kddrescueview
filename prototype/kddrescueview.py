@@ -20,11 +20,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
+import re
 import sys
+import logging
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtOpenGL
 import moderngl
+from collections import namedtuple
 
 
 class Scene:
@@ -99,10 +101,117 @@ class Widget(QtOpenGL.QGLWidget):
         self.scene.plot(vertices)
 
 
+rescue_statuses = {
+    '?': 'copying non-tried blocks',
+    '*': 'trimming non-trimmed blocks',
+    '/': 'scraping non-scraped blocks',
+    '-': 'retrying bad sectors',
+    'F': 'filling specified blocks',
+    'G': 'generating approximate mapfile',
+    '+': 'finished',
+}
+block_statuses = {
+    '?': 'non-tried block',
+    '*': 'failed block non-trimmed',
+    '/': 'failed block non-scraped',
+    '-': 'failed block bad-sector(s)',
+    '+': 'finished block',
+}
+Block = namedtuple('Block', 'position size status')
+
+class Rescue:
+    def __init__(self, mapfile):
+        self.command = None
+        self.sector_size = None
+        self.current_position = None
+        self.current_status = None
+        self.current_pass = None
+        self.blocks = list()
+        self.parse(mapfile)
+        self.sector_size = self.sector_size or 512
+
+    def parse(self, mapfile):
+        with open(mapfile) as file:
+            lines = file.readlines()
+
+        for n, line in enumerate(lines):
+            line = line.strip()
+            
+            if not line:
+                logging.debug(f'line {n}: empty line')
+                continue
+
+            if self.command and line.startswith('# Command line:'):
+                logging.error(f'line {n}: more than one command line')
+                continue
+
+            if line.startswith('# Command line:'):
+                logging.debug(f'line {n}: command line')
+                self.command = line
+                match = re.search(r'(-b|--block-size=)\s*(?P<blocksize>[0-9]+)', line)
+                self.sector_size = int(match.group('blocksize')) if match else 512  # TODO: if conversion fails
+                logging.info(f'Sector size = {self.sector_size}')
+                continue
+
+            if line.startswith('#'):
+                logging.debug(f'line {n}: comment line')
+                continue
+
+            parts = line.split()
+
+            if len(parts) == 2 or len(parts) > 2 and parts[2].strip().startswith('#'):
+                try:
+                    position = int(parts[0], 0)
+                    status = parts[0].strip()
+                except:
+                    position = None
+                if position and status in statuses: 
+                    self.position = position
+                    self.status = status
+                    logging.debug(f'line {n}: old status line')
+                    continue
+                else:
+                    logging.warning(f'line {n}: incorrect old status line')
+                    continue
+
+            if len(parts) == 3 or len(parts) > 3 and parts[3].strip().startswith('#'):
+                try:  # is it a status line (new format)
+                    position = int(parts[0], 0)
+                    size = int(parts[1], 0)
+                    status = parts[2].strip()
+                except ValueError:
+                    logging.debug(f'line {n}: not a block line')
+                else:
+                    if status not in block_statuses or position < 0 or size <= 0:
+                        logging.error(f'line {n}: incorrect block line ({line})')
+                        continue
+                    logging.debug(f'line {n}: block line')
+                    self.blocks.append(Block(position, size, status))
+                    continue
+
+                try:  # is it a block line
+                    position = int(parts[0], 0)
+                    status = parts[1].strip()
+                    passnumber = int(parts[2], 0)
+                except ValueError:
+                    logging.debug(f'line {n}: not a new rescue status line')
+                else:
+                    if status not in rescue_statuses or position < 0 or passnumber < 1:
+                        logging.error(f'line {n}: incorrect new status line')
+                        continue
+                    logging.debug(f'line {n}: status line (new format)')
+                    self.current_position = position
+                    self.current_status = status
+                    self.current_pass = passnumber
+                    continue
+
+            logging.warning(f'line {n}: invalid line not processed ({line})')
+
+
 if __name__ == '__main__':
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
     app = QtWidgets.QApplication(sys.argv)
+    rescue = Rescue('../tests/Seagate1.mapfile')
     widget = Widget()
     widget.show()
     sys.exit(app.exec_())
-
-# QModernGLWidget
