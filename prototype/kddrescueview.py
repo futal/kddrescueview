@@ -207,6 +207,15 @@ class Rescue:
 
             logging.warning(f'line {n}: invalid line not processed ({line})')
 
+    def start(self):
+        return self.blocks[0].position
+
+    def end(self):
+        return self.block[-1].position + self.blocks[-1].size
+    
+    def size(self):
+        return self.end() - self.start()
+
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
