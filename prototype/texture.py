@@ -22,21 +22,10 @@
 # Prototype to create a texture of a ddrescue rescue map
 # This first prototype only merges two lists of rescue blocks
 
-class Block:
-    def __init__(self, start, size, status):
-        self.start = start
-        self.size = size
-        self.status = status
+from collections import namedtuple
 
-    @property
-    def end(self):
-        return self.start + self.size
-
-    def __str__(self):
-        return f"Block(start={self.start}, size={self.size}, status={self.status})"
-
-    def __eq__(self, other):
-        return str(self) == str(other)
+Block = namedtuple('Block', 'start size status')
+Block.end = property(lambda self: self.start + self.size)
 
 def merge(list1, list2):
     # check that both lists have the same start and end
@@ -53,23 +42,10 @@ def merge(list1, list2):
     item1 = next(iter1, None)
     item2 = next(iter2, None)
     while item1 and item2:
-        if item1.end > item2.end:
-            part = Block(item2.start, item2.size, (item1.status, item2.status))
-            result.append(part)
-            item1 = Block(item2.end, item1.size - item2.size, item1.status)
-            item2 = next(iter2, None)
-            continue
-        if item1.end < item2.end:
-            part = Block(item1.start, item1.size, (item1.status, item2.status))
-            result.append(part)
-            item2 = Block(item1.end, item2.size - item1.size, item2.status)
-            item1 = next(iter1, None)
-            continue
-        # else item1.end == item2.end
-        part = Block(item1.start, item1.size, (item1.status, item2.status))
+        part = Block(item1.start, min(item1.end, item2.end) - item1.start, (item1.status, item2.status))
         result.append(part)
-        item1 = next(iter1, None)
-        item2 = next(iter2, None)
+        item1 = Block(part.end, item1.size - part.size, item1.status) if item1.size > part.size else next(iter1, None)
+        item2 = Block(part.end, item2.size - part.size, item2.status) if item2.size > part.size else next(iter2, None)
     return result
 
 test_list_1 = [
