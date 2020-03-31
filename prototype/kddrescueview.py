@@ -61,8 +61,9 @@ class Scene:
 
         self.vbo = ctx.buffer(reserve='4MB', dynamic=True)
         self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'vertices')
-        tex_data = np.random.randint(256, size=(256, 256, 256, 4), dtype=np.uint8)
-        self.tex = ctx.texture3d(size=(256, 256, 256), components=4, data=tex_data)
+        tex_data = np.random.randint(256, size=(16, 16, 16, 4), dtype=np.uint8)
+        self.tex = ctx.texture3d(size=(16, 16, 16), components=4, data=tex_data)
+        self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
 
 
