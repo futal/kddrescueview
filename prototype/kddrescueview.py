@@ -47,22 +47,23 @@ class Scene:
             fragment_shader='''
                 #version 330
 
-                uniform sampler3D tex;
+                uniform usampler3D tex;
 
                 in vec2 v_text;
-                out vec4 gl_FragColor;
+                out uvec4 gl_FragColor;
 
                 void main() {
                     vec3 coord = vec3(v_text/2. + .5, 0.);
-                    gl_FragColor = vec4(texture(tex, coord).rgb, 1.0);
+                    uvec3 rgb = texture(tex, coord).rgb;
+                    gl_FragColor = uvec4(rgb, 255);
                 }
             ''',
         )
 
         self.vbo = ctx.buffer(reserve='4MB', dynamic=True)
         self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'vertices')
-        tex_data = np.random.randint(256, size=(16, 16, 16, 4), dtype=np.uint8)
-        self.tex = ctx.texture3d(size=(16, 16, 16), components=4, data=tex_data)
+        tex_data = np.random.randint(256, size=(256, 256, 256, 4), dtype=np.uint8)
+        self.tex = ctx.texture3d(size=(256, 256, 256), components=4, data=tex_data)
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
 
