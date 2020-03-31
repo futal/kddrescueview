@@ -47,12 +47,13 @@ class Scene:
             fragment_shader='''
                 #version 330
 
-                uniform sampler2D tex;
+                uniform sampler3D tex;
+
                 in vec2 v_text;
                 out vec4 gl_FragColor;
 
                 void main() {
-                    vec2 coord = (v_text + 1.0)/2.0 ;
+                    vec3 coord = vec3(v_text/2. + .5, 0.);
                     gl_FragColor = vec4(texture(tex, coord).rgb, 1.0);
                 }
             ''',
@@ -60,8 +61,8 @@ class Scene:
 
         self.vbo = ctx.buffer(reserve='4MB', dynamic=True)
         self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'vertices')
-        tex_data = np.random.randint(256, size=(256, 256, 3), dtype=np.uint8)
-        self.tex = ctx.texture((256, 256), 3, tex_data)
+        tex_data = np.random.randint(256, size=(256, 256, 256, 4), dtype=np.uint8)
+        self.tex = ctx.texture3d(size=(256, 256, 256), components=4, data=tex_data)
         self.tex.use()
 
 
@@ -108,6 +109,7 @@ class Widget(QtOpenGL.QGLWidget):
         self.screen.use()
         self.scene.clear()
         self.scene.plot(vertices)
+
 
 
 rescue_statuses = {
