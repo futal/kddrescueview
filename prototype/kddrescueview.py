@@ -28,31 +28,40 @@ import moderngl
 
 
 class Scene:
-    def __init__(self, ctx, reserve='4MB'):
+    def __init__(self, ctx, reserve='16MB'):
         self.ctx = ctx
         self.prog = self.ctx.program(
             vertex_shader='''
                 #version 330
 
                 in vec2 vertices;
+                out vec2 v_text;
 
                 void main() {
                     gl_Position = vec4(vertices, 0.0, 1.0);
+                    v_text = vertices;
                 }
             ''',
             fragment_shader='''
                 #version 330
-                
+
+                uniform sampler2D tex;
+                in vec2 v_text;
                 out vec4 gl_FragColor;
 
                 void main() {
-                    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                    vec2 coord = (v_text + 1.0)/2.0 ;
+                    gl_FragColor = vec4(texture(tex, coord).rgb, 1.0);
                 }
             ''',
         )
 
         self.vbo = ctx.buffer(reserve='4MB', dynamic=True)
         self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'vertices')
+        tex_data = np.random.randint(256, size=(256, 256, 3), dtype=np.uint8)
+        self.tex = ctx.texture((256, 256), 3, tex_data)
+        self.tex.use()
+
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
@@ -104,5 +113,3 @@ if __name__ == '__main__':
     widget = Widget()
     widget.show()
     sys.exit(app.exec_())
-
-# QModernGLWidget
