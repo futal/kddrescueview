@@ -54,9 +54,11 @@ class Scene:
                 out uvec4 gl_FragColor;
 
                 void main() {
-                    ivec3 coord = ivec3((v_text+1.)*tex_size/2., 0.);
-                    uvec3 rgb = texelFetch(tex, coord, 0).rgb;
-                    gl_FragColor = uvec4(rgb, 255);
+                    ivec3 coord0 = ivec3((v_text+1.)*tex_size/2., 0.);
+                    uvec3 rgb0 = texelFetch(tex, coord0, 0).rgb;
+                    ivec3 coord1 = ivec3(rgb0);
+                    uvec3 rgb1 = texelFetch(tex, coord1, 0).rgb;
+                    gl_FragColor = uvec4(rgb0, 255);
                 }
             ''',
         )
