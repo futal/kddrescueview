@@ -37,23 +37,22 @@ class Scene:
                 #version 330
 
                 in vec2 vertices;
-                out vec2 v_text;
 
                 void main() {
                     gl_Position = vec4(vertices, 0.0, 1.0);
-                    v_text = vertices;
                 }
             ''',
             fragment_shader='''
                 #version 330
 
                 uniform int tex_size;
+                uniform ivec2 resolution;
                 uniform usampler3D tex;
 
-                in vec2 v_text;
                 out vec4 gl_FragColor;
 
                 void main() {
+                    vec2 v_text = gl_FragCoord.xy / resolution;
                     vec3 coord = vec3(v_text/2. + .5, 0.) * vec3(float(tex_size));
                     ivec3 icoord0 = ivec3(coord);
                     uvec3 rgb0 = texelFetch(tex, icoord0, 0).rgb;
@@ -74,7 +73,7 @@ class Scene:
         self.tex = ctx.texture3d(size=(tex_size,)*3, components=4, data=tex_data, alignment=1, dtype='u1')
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
-
+        self.prog['resolution'] = (512, 512)
 
 
     def clear(self, color=(0, 0, 0, 0)):
