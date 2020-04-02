@@ -48,11 +48,22 @@ class Scene:
                 uniform int tex_size;
                 uniform ivec2 resolution;
                 uniform int levels;
+                uniform int square_size = 8;
                 uniform usampler3D tex;
 
                 out vec4 gl_FragColor;
 
                 void main() {
+
+                    if(mod(int(gl_FragCoord.x),square_size) == 0) {
+                        gl_FragColor = vec4(1.);
+                        return;
+                    }
+                    if(mod(int(gl_FragCoord.y),square_size) == 0) {
+                        gl_FragColor = vec4(1.);
+                        return;
+                    }
+            
                     vec2 v_text;
                     vec3 coord;
                     ivec3 icoord;
@@ -82,6 +93,7 @@ class Scene:
         self.tex.use()
         self.prog['resolution'] = (512, 512)
         self.prog['levels'] = 3
+        self.prog['square_size'] = 4
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
