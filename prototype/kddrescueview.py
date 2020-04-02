@@ -54,16 +54,29 @@ class Scene:
                 out vec4 gl_FragColor;
 
                 void main() {
+                    if(gl_FragCoord.x > resolution.x - mod(resolution.x - 1.0, square_size)) {
+                        // right margin as there is not enough space for full squares
+                        gl_FragColor = vec4(1.);
+                        return;
+                    }
+                    
+                    if(gl_FragCoord.y > resolution.y - mod(resolution.y - 1.0, square_size)) {
+                        // top margin as there is not enough space for full squares
+                        gl_FragColor = vec4(1.);
+                        return;
+                    }
 
                     if(mod(int(gl_FragCoord.x),square_size) == 0) {
+                        // vertical grid bars
                         gl_FragColor = vec4(1.);
                         return;
                     }
                     if(mod(int(gl_FragCoord.y),square_size) == 0) {
+                        // horizontal grid bars
                         gl_FragColor = vec4(1.);
                         return;
                     }
-            
+
                     vec2 v_text;
                     vec3 coord;
                     ivec3 icoord;
