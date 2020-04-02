@@ -47,18 +47,25 @@ class Scene:
 
                 uniform int tex_size;
                 uniform ivec2 resolution;
+                uniform int levels;
                 uniform usampler3D tex;
 
                 out vec4 gl_FragColor;
 
                 void main() {
-                    vec2 v_text = gl_FragCoord.xy / resolution;
-                    vec3 coord = vec3(v_text/2. + .5, 0.) * vec3(float(tex_size));
-                    ivec3 icoord0 = ivec3(coord);
-                    uvec3 rgb0 = texelFetch(tex, icoord0, 0).rgb;
-                    ivec3 icoord1 = ivec3(rgb0);
-                    uvec3 rgb1 = texelFetch(tex, icoord1, 0).rgb;
-                    vec3 rgb = vec3(rgb1) / vec3(tex_size);
+                    vec2 v_text;
+                    vec3 coord;
+                    ivec3 icoord;
+                    uvec3 ucoord;
+                
+                    v_text = gl_FragCoord.xy / resolution;
+                    coord = vec3(v_text/2. + .5, 0.) * vec3(tex_size);
+                    icoord = ivec3(coord);
+                    for(int i = 0; i < levels; ++i) {
+                        ucoord = texelFetch(tex, icoord, 0).rgb;
+                        icoord = ivec3(ucoord);
+                    }
+                    vec3 rgb = vec3(ucoord) / vec3(tex_size);
                     gl_FragColor = vec4(rgb, 1.0);
                 }
             ''',
@@ -74,7 +81,7 @@ class Scene:
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
         self.prog['resolution'] = (512, 512)
-
+        self.prog['levels'] = 3
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
