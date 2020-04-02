@@ -55,12 +55,11 @@ class Scene:
 
                 void main() {
                     vec3 coord = vec3(v_text/2. + .5, 0.) * vec3(float(tex_size));
-                    ivec3 icoord = ivec3(coord);
-                    //uvec3 rgb0 = texelFetch(tex, coord0, 0).rgb;
-                    //ivec3 coord1 = ivec3(rgb0);
-                    //uvec3 rgb1 = texelFetch(tex, coord1, 0).rgb;
-                    vec3 rgb = vec3(texelFetch(tex, icoord, 0).rgb) / vec3(tex_size);
-                    //vec3 rgb = texture(tex, coord).rgb;
+                    ivec3 icoord0 = ivec3(coord);
+                    uvec3 rgb0 = texelFetch(tex, icoord0, 0).rgb;
+                    ivec3 icoord1 = ivec3(rgb0);
+                    uvec3 rgb1 = texelFetch(tex, icoord1, 0).rgb;
+                    vec3 rgb = vec3(rgb1) / vec3(tex_size);
                     gl_FragColor = vec4(rgb, 1.0);
                 }
             ''',
