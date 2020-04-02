@@ -47,30 +47,31 @@ class Scene:
             fragment_shader='''
                 #version 330
 
-                uniform int tex_size;
-                uniform usampler3D tex;
+                //uniform int tex_size;
+                uniform sampler3D tex;
 
                 in vec2 v_text;
-                out uvec4 gl_FragColor;
+                out vec4 gl_FragColor;
 
                 void main() {
-                    ivec3 coord0 = ivec3((v_text+1.)*tex_size/2., 0.);
-                    uvec3 rgb0 = texelFetch(tex, coord0, 0).rgb;
-                    ivec3 coord1 = ivec3(rgb0);
-                    uvec3 rgb1 = texelFetch(tex, coord1, 0).rgb;
-                    gl_FragColor = uvec4(rgb0, 255);
+                    vec3 coord = vec3(v_text/2. + .5, 0.);
+                    //uvec3 rgb0 = texelFetch(tex, coord0, 0).rgb;
+                    //ivec3 coord1 = ivec3(rgb0);
+                    //uvec3 rgb1 = texelFetch(tex, coord1, 0).rgb;
+                    vec3 rgb = texture(tex, coord).rgb;
+                    gl_FragColor = vec4(rgb, 1.0);
                 }
             ''',
         )
 
-
         self.vbo = ctx.buffer(reserve='4MB', dynamic=True)
         self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'vertices')
+
         tex_size = 256
-        self.tex_size = self.prog['tex_size']
-        self.tex_size.value = tex_size
-        tex_data = np.random.randint(256, size=(tex_size,)*3+(4,), dtype=np.uint8)
-        self.tex = ctx.texture3d(size=(tex_size,)*3, components=4, data=tex_data)
+##        self.tex_size = self.prog['tex_size']
+##        self.tex_size.value = tex_size
+        tex_data = np.random.uniform(low=0.0, high=1.0, size=(tex_size,)*3+(4,)).astype('f4')
+        self.tex = ctx.texture3d(size=(tex_size,)*3, components=4, data=tex_data, alignment=4, dtype=('f4'))
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
 
