@@ -79,11 +79,14 @@ class Scene:
                     }
 
                     ivec2 grid_coord = ivec2(gl_FragCoord.xy) / ivec2(square_size);
+                    ivec2 grid_resolution = resolution / ivec2(square_size);
+                    int square = grid_coord.y * grid_resolution.x + grid_coord.x;
+                    int squares = grid_resolution.x * grid_resolution.y;
                     
                     ivec3 icoord;
                     uvec3 ucoord;
                 
-                    icoord = ivec3(grid_coord, 0);
+                    icoord = ivec3(mod(square, tex_size), 0, 0);
                     for(int i = 0; i < levels; ++i) {
                         ucoord = texelFetch(tex, icoord, 0).rgb;
                         icoord = ivec3(ucoord);
@@ -105,7 +108,7 @@ class Scene:
         self.tex.use()
         self.prog['resolution'] = (512, 512)
         self.prog['levels'] = 3
-        self.prog['square_size'] = 16
+        self.prog['square_size'] = 8
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
