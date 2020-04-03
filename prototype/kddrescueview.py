@@ -71,20 +71,19 @@ class Scene:
                         gl_FragColor = vec4(1.);
                         return;
                     }
+                    
                     if(mod(int(gl_FragCoord.y),square_size) == 0) {
                         // horizontal grid bars
                         gl_FragColor = vec4(1.);
                         return;
                     }
 
-                    vec2 v_text;
-                    vec3 coord;
+                    ivec2 grid_coord = ivec2(gl_FragCoord.xy) / ivec2(square_size);
+                    
                     ivec3 icoord;
                     uvec3 ucoord;
                 
-                    v_text = gl_FragCoord.xy / resolution;
-                    coord = vec3(v_text/2. + .5, 0.) * vec3(tex_size);
-                    icoord = ivec3(coord);
+                    icoord = ivec3(grid_coord, 0);
                     for(int i = 0; i < levels; ++i) {
                         ucoord = texelFetch(tex, icoord, 0).rgb;
                         icoord = ivec3(ucoord);
@@ -106,7 +105,7 @@ class Scene:
         self.tex.use()
         self.prog['resolution'] = (512, 512)
         self.prog['levels'] = 3
-        self.prog['square_size'] = 4
+        self.prog['square_size'] = 16
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
