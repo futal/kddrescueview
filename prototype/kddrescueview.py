@@ -243,10 +243,10 @@ class Rescue:
             if len(parts) == 2 or len(parts) > 2 and parts[2].strip().startswith('#'):
                 try:
                     position = int(parts[0], 0)
-                    status = parts[0].strip()
+                    status = parts[1].strip()
                 except:
                     position = None
-                if position and status in statuses: 
+                if position and status in rescue_statuses: 
                     self.position = position
                     self.status = status
                     logging.debug(f'line {n}: old status line')
@@ -395,7 +395,7 @@ def texture(rescue):
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-    rescue = Rescue('../tests/Seagate1.mapfile')
+    rescue = Rescue('../tests/example.log')
     tex = texture(rescue)
     
     app = QtWidgets.QApplication(sys.argv)
