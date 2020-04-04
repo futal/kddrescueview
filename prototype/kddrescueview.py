@@ -165,6 +165,7 @@ rescue_statuses = {
     'G': 'generating approximate mapfile',
     '+': 'finished',
 }
+
 block_statuses = {
     '?': 'non-tried block',
     '*': 'failed block non-trimmed',
@@ -172,11 +173,13 @@ block_statuses = {
     '-': 'failed block bad-sector(s)',
     '+': 'finished block',
 }
-Block = namedtuple('Block', 'position size status')
+
+Block = namedtuple('Block', 'start size status')
+Block.end = property(lambda self: self.start + self.size)
 
 class Rescue:
     def __init__(self, mapfile):
-        self.command = None
+        self.commandline = None
         self.sector_size = None
         self.current_position = None
         self.current_status = None
@@ -196,16 +199,16 @@ class Rescue:
                 logging.debug(f'line {n}: empty line')
                 continue
 
-            if self.command and line.startswith('# Command line:'):
+            if self.commandline and line.startswith('# Command line:'):
                 logging.error(f'line {n}: more than one command line')
                 continue
 
             if line.startswith('# Command line:'):
                 logging.debug(f'line {n}: command line')
-                self.command = line
+                self.commandline = line
                 match = re.search(r'(-b|--block-size=)\s*(?P<blocksize>[0-9]+)', line)
                 self.sector_size = int(match.group('blocksize')) if match else 512  # TODO: if conversion fails
-                logging.info(f'Sector size = {self.sector_size}')
+                logging.info(f'sector_size = {self.sector_size}')
                 continue
 
             if line.startswith('#'):
@@ -231,17 +234,17 @@ class Rescue:
 
             if len(parts) == 3 or len(parts) > 3 and parts[3].strip().startswith('#'):
                 try:  # is it a status line (new format)
-                    position = int(parts[0], 0)
+                    start = int(parts[0], 0)
                     size = int(parts[1], 0)
                     status = parts[2].strip()
                 except ValueError:
                     logging.debug(f'line {n}: not a block line')
                 else:
-                    if status not in block_statuses or position < 0 or size <= 0:
+                    if status not in block_statuses or start < 0 or size <= 0:
                         logging.error(f'line {n}: incorrect block line ({line})')
                         continue
                     logging.debug(f'line {n}: block line')
-                    self.blocks.append(Block(position, size, status))
+                    self.blocks.append(Block(start, size, status))
                     continue
 
                 try:  # is it a block line
@@ -262,20 +265,83 @@ class Rescue:
 
             logging.warning(f'line {n}: invalid line not processed ({line})')
 
-    def start(self):
-        return self.blocks[0].position
+    start = property(lambda self: self.blocks[0].start)
+    end = property(lambda self: self.blocks[-1].start + self.blocks[-1].size)
+    size = property(lambda self: self.end - self.start)
 
-    def end(self):
-        return self.block[-1].position + self.blocks[-1].size
-    
-    def size(self):
-        return self.end() - self.start()
+
+def merge(list1, list2):
+    # check that both lists have the same start and end
+    if list1[0].start != list2[0].start:
+        logging.error(f'the lists do not have the same start: {list1[0].start} and {list2[0].start}')
+        return
+    if list1[-1].end != list2[-1].end:
+        logging.error(f'the lists do not have the same end: {list1[-1].end} and {list2[-1].end}')
+        return
+
+    iter1 = iter(list1)
+    iter2 = iter(list2)
+    result = list()
+    item1 = next(iter1, None)
+    item2 = next(iter2, None)
+    while item1 and item2:
+        part = Block(item1.start, min(item1.end, item2.end) - item1.start, (item1.status, item2.status))
+        result.append(part)
+        item1 = Block(part.end, item1.size - part.size, item1.status) if item1.size > part.size else next(iter1, None)
+        item2 = Block(part.end, item2.size - part.size, item2.status) if item2.size > part.size else next(iter2, None)
+    return result
+
+
+def texture(rescue):
+    '''create a 3D texture representing the rescue domain as a tree'''
+    tex_size = 256
+
+    # padding of rescue.blocks so that rescue.size is a multiple of tex_size
+    levels = 0
+    while rescue.sector_size * 256**levels < rescue.size:
+        levels += 1
+    logging.info(f'levels = {levels}')
+    padding_size = rescue.sector_size * 256**levels-1 - rescue.size + 1  # TODO: check why +1 is needed
+    logging.info(f'padding_size = {padding_size}')
+    if padding_size > 0:
+        padding = Block(rescue.end, padding_size, '')
+        rescue.blocks.append(padding)
+
+    # create an empty texture
+    tex_shape = (tex_size,)*3+(4,)
+    tex = np.zeros(shape=tex_shape).astype('u1')
+
+    # create the list of blocks needed to get the first texture line
+    def pixel_blocks(rescue, tex_size, levels):
+        blocks = list()
+        for x in range(tex_size):
+            pixel = Block(
+                start = rescue.start + x * rescue.sector_size * tex_size**(levels-1),
+                size = rescue.sector_size * tex_size**(levels-1),
+                status = ''
+            )
+            blocks.append(pixel)        
+        return blocks
+
+    blocks = pixel_blocks(rescue, tex_size, levels)
+
+    first_texture_line = merge(rescue.blocks, blocks)
+    print(first_texture_line)
+
+    # fill the first texture line
+    #for x, block in enumerate(first_texture_line):
+    #    tex[x][0][0] = 
+
+    return tex
 
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-    app = QtWidgets.QApplication(sys.argv)
     rescue = Rescue('../tests/Seagate1.mapfile')
+    tex = texture(rescue)
+    
+    app = QtWidgets.QApplication(sys.argv)
+
     widget = Widget()
     widget.show()
     sys.exit(app.exec_())
