@@ -27,11 +27,11 @@ import itertools
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtOpenGL
 import moderngl
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 
 class Scene:
-    def __init__(self, ctx, reserve='16MB'):
+    def __init__(self, ctx, tex_data, tex_size, levels, reserve='16MB', ):
         self.ctx = ctx
         self.prog = self.ctx.program(
             vertex_shader='''
@@ -97,18 +97,19 @@ class Scene:
                     ivec2 grid_resolution = resolution / ivec2(square_size);
                     int square = grid_coord.y * grid_resolution.x + grid_coord.x;
                     int squares = grid_resolution.x * grid_resolution.y;
-                    
+
                     ivec3 icoord;
                     uvec3 ucoord;
                 
                     icoord = ivec3(mod(square, tex_size), 0, 0);
-                    for(int i = 0; i < levels; ++i) {
+
+                    //for(int i = 0; i < levels; ++i) {
                         ucoord = texelFetch(tex, icoord, 0).rgb;
                         icoord = ivec3(ucoord);
-                    }
-                    
+                    //}
                     vec3 rgb = vec3(color(int(ucoord.z))) / vec3(tex_size);
-                    gl_FragColor = vec4(rgb, 1.0);
+                
+                    gl_FragColor = vec4(rgb, levels);  // dummy use of levels so that the shader compiles TODO: replace levels by 1.0
                 }
             ''',
         )
@@ -116,15 +117,15 @@ class Scene:
         self.vbo = ctx.buffer(reserve='4MB', dynamic=True)
         self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'vertices')
 
-        tex_size = 256
+        #tex_size = 256
         self.prog['tex_size'] = tex_size
-        tex_data = np.random.uniform(low=0, high=tex_size-1, size=(tex_size,)*3+(4,)).astype('u1')
-        self.tex = ctx.texture3d(size=(tex_size,)*3, components=4, data=tex_data, alignment=1, dtype='u1')
+        #tex_data = np.random.uniform(low=0, high=tex_size-1, size=(tex_size,)*3+(4,)).astype('u1')
+        self.tex = ctx.texture3d(size=(tex_size,)*3, components=3, data=tex_data, alignment=1, dtype='u1')
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
         self.prog['resolution'] = (512, 512)
-        self.prog['levels'] = 3
-        self.prog['square_size'] = 8
+        self.prog['levels'] = levels
+        self.prog['square_size'] = 16
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
@@ -144,7 +145,7 @@ vertices = np.array(
 
 
 class Widget(QtOpenGL.QGLWidget):
-    def __init__(self):
+    def __init__(self, tex_data, tex_size, levels):
         fmt = QtOpenGL.QGLFormat()
         fmt.setVersion(3, 3)
         fmt.setProfile(QtOpenGL.QGLFormat.CoreProfile)
@@ -163,7 +164,7 @@ class Widget(QtOpenGL.QGLWidget):
     def init(self):
         self.resize(512, 512)
         self.ctx.viewport = (0, 0, 512, 512)
-        self.scene = Scene(self.ctx)
+        self.scene = Scene(self.ctx, tex_data, tex_size, levels)
 
     def render(self):
         self.screen.use()
@@ -183,6 +184,7 @@ rescue_statuses = {
 }
 
 block_statuses = {
+    '': 'unknown status',
     '?': 'non-tried block',
     '*': 'failed block non-trimmed',
     '/': 'failed block non-scraped',
@@ -190,6 +192,7 @@ block_statuses = {
     '+': 'finished block',
 }
 binary_statuses = {
+    '': 0,
     '?': 1,
     '+': 2,
     '*': 4,
@@ -293,27 +296,6 @@ class Rescue:
     size = property(lambda self: self.end - self.start)
 
 
-def merge(list1, list2):
-    # check that both lists have the same start and end
-    if list1[0].start != list2[0].start:
-        logging.error(f'the lists do not have the same start: {list1[0].start} and {list2[0].start}')
-        return
-    if list1[-1].end != list2[-1].end:
-        logging.error(f'the lists do not have the same end: {list1[-1].end} and {list2[-1].end}')
-        return
-
-    iter1 = iter(list1)
-    iter2 = iter(list2)
-    result = list()
-    item1 = next(iter1, None)
-    item2 = next(iter2, None)
-    while item1 and item2:
-        part = Block(item1.start, min(item1.end, item2.end) - item1.start, (item1.status, item2.status))
-        result.append(part)
-        item1 = Block(part.end, item1.size - part.size, item1.status) if item1.size > part.size else next(iter1, None)
-        item2 = Block(part.end, item2.size - part.size, item2.status) if item2.size > part.size else next(iter2, None)
-    return result
-
 def color(statuses):
     '''computes a pixel bitfield color from rescue block statuses'''
     return sum(binary_statuses.get(status, 0) for status in set(statuses))
@@ -329,19 +311,21 @@ def texture(rescue):
     tex = np.zeros(shape=tex_shape).astype('u1')
 
     # iterator for texture lines
-    tex_lines = itertools.product(range(tex_size), repeat=2)
+    lines = itertools.product(range(tex_size), repeat=2)
 
-    # save coordinates of the first texture line to be used as an entry point
-    x0, y0 = next(tex_lines)
-    
-    # create a memory of texture lines with a single status TODO: create on demand with a defaultdict
-    memory = dict()
-    for status, bitfield in binary_statuses.items():
-        x, y = next(tex_lines)
+    # create a memory of texture lines with a single status
+    class status_memory(defaultdict):
+        def __missing__(self, status_key):
+            if self.default_factory is None:
+                raise KeyError(status_key)
+            result = self[status_key] = self.default_factory(status_key)
+            return result
+    def create_single_status_line(status):
+        x, y, bitfield = next(lines) + (color(status),)
         for z in range(tex_size):
             tex[x][y][z] = (x, y, bitfield)
-        memory[status] = (x, y, bitfield)
-
+        return (x, y, bitfield)
+    memory = status_memory(create_single_status_line)
 
     logging.info(f'rescue.start = {rescue.start:_}')
     logging.info(f'rescue.size = {rescue.size:_}')
@@ -366,40 +350,71 @@ def texture(rescue):
         rescue.blocks.append(padding)
 
     # iterator for rescue blocks
-    rescue_blocks = iter(rescue.blocks)
-    rescue_block = next(rescue_blocks)
-    logging.info(f'initial rescue_block = {rescue_block}')
+    blocks = iter(rescue.blocks)
+    block = next(blocks, None)
 
-    # create the list of blocks needed to get the first texture line
-    def pixel_blocks(rescue, tex_size, levels):
-        blocks = list()
-        for x in range(tex_size):
-            pixel = Block(
-                start = rescue.start + x * rescue.sector_size * tex_size**levels,
-                size = rescue.sector_size * tex_size**levels,
-                status = ''
-            )
-            blocks.append(pixel)        
-        return blocks
+    def populate_line(line_block):
+        '''fill a texture line corresponding to a block'''
+        # create the blocks corresponding to the line pixels
+        pixel_blocks = list()
+        pixel_size = int(line_block.size / tex_size)
+        for i in range(tex_size):
+            pixel_start = line_block.start + i * pixel_size
+            pixel_block = Block(pixel_start, pixel_size, '')
+            pixel_blocks.append(pixel_block)
+        pixels = iter(pixel_blocks)
+        pixel = next(pixels, None)
 
-    blocks = pixel_blocks(rescue, tex_size, levels)
+        # access existing block
+        nonlocal block
 
-    first_texture_line = merge(rescue.blocks, blocks)
+        # initialise the line statuses
+        line_statuses = ''
 
-    # fill the first texture line
-    #for z, block in enumerate(first_texture_line):
-    #    tex[0][0][z] = 
+        # select an empty texture line
+        x, y = next(lines)
+        z = 0
 
-    return tex
+        while block and pixel:
+            if block.end > pixel.end:
+                tex[x][y][z] = memory[block.status]
+                line_statuses += block.status
+                z += 1
+                block = Block(pixel.end, block.size - pixel_size, block.status)
+                pixel = next(pixels, None)
+                continue
+                
+            if block.end == pixel.end:
+                tex[x][y][z] = memory[block.status]
+                line_statuses += block.status
+                z += 1
+                block = next(blocks, None)
+                pixel = next(pixels, None)
+                continue
+            
+            if block.end < pixel.end:
+                pixel_x, pixel_y, pixel_statuses = populate_line(pixel)
+                tex[x][y][z] = (pixel_x, pixel_y, color(pixel_statuses))
+                line_statuses += pixel_statuses
+                z += 1
+                pixel = next(pixels, None)
+                continue
+        
+        return (x, y, line_statuses)
+
+    first_line = Block(rescue.start, rescue.size, '')
+
+    first_line_summary = populate_line(first_line)
+
+    return (tex, tex_size, levels)
 
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-    rescue = Rescue('../tests/example.log')
-    tex = texture(rescue)
+    rescue = Rescue('../tests/Seagate1.mapfile')
+    tex_data, tex_size, levels = texture(rescue)
     
     app = QtWidgets.QApplication(sys.argv)
-
-    widget = Widget()
+    widget = Widget(tex_data, tex_size, levels)
     widget.show()
     sys.exit(app.exec_())
