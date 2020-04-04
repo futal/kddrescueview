@@ -23,6 +23,7 @@
 import re
 import sys
 import logging
+import itertools
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtOpenGL
 import moderngl
@@ -323,6 +324,29 @@ def texture(rescue):
 
     tex_size = 256  # 2**10 = 256 (see levels computation where 10 is used), OpenGl 3.3 requires 3D textures to support at least 256*256*256 textures
 
+    # create an empty texture
+    tex_shape = (tex_size,)*3+(3,)
+    tex = np.zeros(shape=tex_shape).astype('u1')
+
+    # iterator for texture lines
+    tex_lines = itertools.product(range(tex_size), repeat=2)
+
+    # save coordinates of the first texture line to be used as an entry point
+    x0, y0 = next(tex_lines)
+    
+    # create a memory of texture lines with a single status TODO: create on demand with a defaultdict
+    memory = dict()
+    for status, bitfield in binary_statuses.items():
+        x, y = next(tex_lines)
+        for z in range(tex_size):
+            tex[x][y][z] = (x, y, bitfield)
+        memory[status] = (x, y, bitfield)
+
+
+    logging.info(f'rescue.start = {rescue.start:_}')
+    logging.info(f'rescue.size = {rescue.size:_}')
+
+    # compute the number of tree levels stored recursively in the texture 
     levels = int(np.ceil(np.log2(rescue.size/rescue.sector_size)/10))  # 10 comes from 256 = 2**10
     logging.info(f'levels = {levels}')
     # at level 0, each pixel represents 1 sector (256**0)
@@ -333,17 +357,18 @@ def texture(rescue):
     # ...
     # at level n, each pixel represents 256**n sectors    
 
-
-    # padding of rescue.blocks with unknown status so that it matches the size of the first texture line 
+    # the texture represents sector_size * tex_size**(levels+1) bytes
+    # so rescue.blocks needs padding to match this size 
     padding_size = rescue.sector_size * tex_size**(levels+1) - rescue.size
-    logging.info(f'padding_size = {padding_size}')
+    logging.info(f'padding_size = {padding_size:_}')
     if padding_size > 0:
         padding = Block(rescue.end, padding_size, '')
         rescue.blocks.append(padding)
 
-    # create an empty texture
-    tex_shape = (tex_size,)*3+(4,)
-    tex = np.zeros(shape=tex_shape).astype('u1')
+    # iterator for rescue blocks
+    rescue_blocks = iter(rescue.blocks)
+    rescue_block = next(rescue_blocks)
+    logging.info(f'initial rescue_block = {rescue_block}')
 
     # create the list of blocks needed to get the first texture line
     def pixel_blocks(rescue, tex_size, levels):
@@ -362,8 +387,8 @@ def texture(rescue):
     first_texture_line = merge(rescue.blocks, blocks)
 
     # fill the first texture line
-    #for x, block in enumerate(first_texture_line):
-    #    tex[x][0][0] = 
+    #for z, block in enumerate(first_texture_line):
+    #    tex[0][0][z] = 
 
     return tex
 
