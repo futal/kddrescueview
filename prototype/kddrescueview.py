@@ -53,6 +53,20 @@ class Scene:
 
                 out vec4 gl_FragColor;
 
+                ivec3 color(int status) {
+                    // compute a color from a bitfield status
+                    int nontried = status & 1; 
+                    int recovered = status & 2; 
+                    int nontrimmed = status & 4;
+                    int nonscraped = status & 8;
+                    int badsectors = status & 16; 
+                    int colors = nontried + recovered + nontrimmed + nonscraped + badsectors;
+                    int red = (nontried * 0x40 + nontrimmed * 0xff + nonscraped * 0x20 + badsectors * 0xff) / colors;
+                    int green = (nontried * 0x40 + nontrimmed * 0xe0 + nonscraped * 0x20 + recovered * 0xff) / colors;
+                    int blue =  (nontried * 0x40 + nonscraped * 0xff) / colors;
+                    return ivec3(red, green, blue); 
+                }
+                
                 void main() {
                     if(gl_FragCoord.x > resolution.x - mod(resolution.x - 1.0, square_size)) {
                         // right margin as there is not enough space for full squares
@@ -91,7 +105,8 @@ class Scene:
                         ucoord = texelFetch(tex, icoord, 0).rgb;
                         icoord = ivec3(ucoord);
                     }
-                    vec3 rgb = vec3(ucoord) / vec3(tex_size);
+                    
+                    vec3 rgb = vec3(color(int(ucoord.z))) / vec3(tex_size);
                     gl_FragColor = vec4(rgb, 1.0);
                 }
             ''',
@@ -175,10 +190,10 @@ block_statuses = {
 }
 binary_statuses = {
     '?': 1,
-    '*': 2,
-    '/': 4,
-    '-': 8,
-    '+': 16,
+    '+': 2,
+    '*': 4,
+    '/': 8,  # 10 as a color multiplicator in the original
+    '-': 16, # 40 as a color multiplicator in the original
 }
 
 Block = namedtuple('Block', 'start size status')
