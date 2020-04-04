@@ -313,21 +313,29 @@ def merge(list1, list2):
         item2 = Block(part.end, item2.size - part.size, item2.status) if item2.size > part.size else next(iter2, None)
     return result
 
-def pixel_color(statuses):
-    '''computes a pixel bitfield color from a rescue block statuses'''
+def color(statuses):
+    '''computes a pixel bitfield color from rescue block statuses'''
     return sum(binary_statuses.get(status, 0) for status in set(statuses))
 
 
 def texture(rescue):
     '''create a 3D texture representing the rescue domain as a tree'''
-    tex_size = 256
 
-    # padding of rescue.blocks so that rescue.size is a multiple of tex_size
-    levels = 0
-    while rescue.sector_size * 256**levels < rescue.size:
-        levels += 1
+    tex_size = 256  # 2**10 = 256 (see levels computation where 10 is used), OpenGl 3.3 requires 3D textures to support at least 256*256*256 textures
+
+    levels = int(np.ceil(np.log2(rescue.size/rescue.sector_size)/10))  # 10 comes from 256 = 2**10
     logging.info(f'levels = {levels}')
-    padding_size = rescue.sector_size * 256**levels-1 - rescue.size + 1  # TODO: check why +1 is needed
+    # at level 0, each pixel represents 1 sector (256**0)
+    # at level 1, each pixel represents 256 sectors (256**1)
+    # at level 2, each pixel represents 65_536 sectors (256**2)
+    # at level 3, each pixel represents 16_777_216 sectors
+    # at level 4, each pixel represents 4_294_967_296 sectors
+    # ...
+    # at level n, each pixel represents 256**n sectors    
+
+
+    # padding of rescue.blocks with unknown status so that it matches the size of the first texture line 
+    padding_size = rescue.sector_size * tex_size**(levels+1) - rescue.size
     logging.info(f'padding_size = {padding_size}')
     if padding_size > 0:
         padding = Block(rescue.end, padding_size, '')
@@ -342,8 +350,8 @@ def texture(rescue):
         blocks = list()
         for x in range(tex_size):
             pixel = Block(
-                start = rescue.start + x * rescue.sector_size * tex_size**(levels-1),
-                size = rescue.sector_size * tex_size**(levels-1),
+                start = rescue.start + x * rescue.sector_size * tex_size**levels,
+                size = rescue.sector_size * tex_size**levels,
                 status = ''
             )
             blocks.append(pixel)        
@@ -352,7 +360,6 @@ def texture(rescue):
     blocks = pixel_blocks(rescue, tex_size, levels)
 
     first_texture_line = merge(rescue.blocks, blocks)
-    print(first_texture_line)
 
     # fill the first texture line
     #for x, block in enumerate(first_texture_line):
