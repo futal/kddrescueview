@@ -173,6 +173,13 @@ block_statuses = {
     '-': 'failed block bad-sector(s)',
     '+': 'finished block',
 }
+binary_statuses = {
+    '?': 1,
+    '*': 2,
+    '/': 4,
+    '-': 8,
+    '+': 16,
+}
 
 Block = namedtuple('Block', 'start size status')
 Block.end = property(lambda self: self.start + self.size)
@@ -290,6 +297,10 @@ def merge(list1, list2):
         item1 = Block(part.end, item1.size - part.size, item1.status) if item1.size > part.size else next(iter1, None)
         item2 = Block(part.end, item2.size - part.size, item2.status) if item2.size > part.size else next(iter2, None)
     return result
+
+def pixel_color(statuses):
+    '''computes a pixel bitfield color from a rescue block statuses'''
+    return sum(binary_statuses.get(status, 0) for status in set(statuses))
 
 
 def texture(rescue):
