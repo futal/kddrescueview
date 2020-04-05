@@ -48,24 +48,30 @@ class Scene:
 
                 uniform int tex_size;
                 uniform ivec2 resolution;
-                uniform int levels;
+                //uniform int levels;
                 uniform int square_size = 8;
                 uniform usampler3D tex;
 
                 out vec4 gl_FragColor;
 
-                ivec3 color(int status) {
+                vec3 color(int status) {
                     // compute a color from a bitfield status
-                    int nontried = status & 1; 
-                    int recovered = status & 2; 
-                    int nontrimmed = status & 4;
-                    int nonscraped = status & 8;
-                    int badsectors = status & 16; 
-                    int colors = nontried + recovered + nontrimmed + nonscraped + badsectors;
-                    int red = (nontried * 0x40 + nontrimmed * 0xff + nonscraped * 0x20 + badsectors * 0xff) / colors;
-                    int green = (nontried * 0x40 + nontrimmed * 0xe0 + nonscraped * 0x20 + recovered * 0xff) / colors;
-                    int blue =  (nontried * 0x40 + nonscraped * 0xff) / colors;
-                    return ivec3(red, green, blue); 
+
+                    if(status == 0) {
+                        return vec3(0.75);
+                        // light grey if status is unknown
+                    }
+                    
+                    float nontried = float(status & 1); 
+                    float recovered = float(status & 2); 
+                    float nontrimmed = float(status & 4);
+                    float nonscraped = float(status & 8) * 1.25;  // multiply by 1.25 to get 10 factor as in the original
+                    float badsectors = float(status & 16) * 2.5;  // multiply by 2.5 to get 40 factor as in the original
+                    float colors = nontried + recovered + nontrimmed + nonscraped + badsectors; 
+                    float red = (nontried * 64. + nontrimmed * 255. + nonscraped * 32. + badsectors * 255.) / colors;
+                    float green = (nontried * 64. + nontrimmed * 224. + nonscraped * 32. + recovered * 255.) / colors;
+                    float blue =  (nontried * 64. + nonscraped * 255.) / colors;
+                    return vec3(red, green, blue); 
                 }
                 
                 void main() {
@@ -107,9 +113,9 @@ class Scene:
                         ucoord = texelFetch(tex, icoord, 0).rgb;
                         icoord = ivec3(ucoord);
                     //}
-                    vec3 rgb = vec3(color(int(ucoord.z))) / vec3(tex_size);
+                    vec3 rgb = color(int(ucoord.z));
                 
-                    gl_FragColor = vec4(rgb, levels);  // dummy use of levels so that the shader compiles TODO: replace levels by 1.0
+                    gl_FragColor = vec4(rgb, 1.0); 
                 }
             ''',
         )
@@ -124,7 +130,7 @@ class Scene:
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
         self.prog['resolution'] = (512, 512)
-        self.prog['levels'] = levels
+        #self.prog['levels'] = levels
         self.prog['square_size'] = 16
 
     def clear(self, color=(0, 0, 0, 0)):
@@ -192,7 +198,6 @@ block_statuses = {
     '+': 'finished block',
 }
 binary_statuses = {
-    '': 0,
     '?': 1,
     '+': 2,
     '*': 4,
@@ -298,7 +303,10 @@ class Rescue:
 
 def color(statuses):
     '''computes a pixel bitfield color from rescue block statuses'''
-    return sum(binary_statuses.get(status, 0) for status in set(statuses))
+    statuses = set(statuses)
+    if not statuses:
+        return 0
+    return sum(binary_statuses.get(status, 0) for status in statuses)
 
 
 def texture(rescue):
@@ -314,21 +322,21 @@ def texture(rescue):
     lines = itertools.product(range(tex_size), repeat=2)
 
     # create a memory of texture lines with a single status
+    def fill_single_status_line(status):
+         x, y, bitfield = next(lines) + (color(status),)
+         for z in range(tex_size):
+             tex[x][y][z] = (x, y, bitfield)
+         return (x, y, bitfield)
+        
     class status_memory(defaultdict):
         def __missing__(self, status_key):
             if self.default_factory is None:
                 raise KeyError(status_key)
             result = self[status_key] = self.default_factory(status_key)
             return result
-    def create_single_status_line(status):
-        x, y, bitfield = next(lines) + (color(status),)
-        for z in range(tex_size):
-            tex[x][y][z] = (x, y, bitfield)
-        return (x, y, bitfield)
-    memory = status_memory(create_single_status_line)
+        
+    memory = status_memory(fill_single_status_line)
 
-    logging.info(f'rescue.start = {rescue.start:_}')
-    logging.info(f'rescue.size = {rescue.size:_}')
 
     # compute the number of tree levels stored recursively in the texture 
     levels = int(np.ceil(np.log2(rescue.size/rescue.sector_size)/10))  # 10 comes from 256 = 2**10
@@ -399,6 +407,8 @@ def texture(rescue):
                 z += 1
                 pixel = next(pixels, None)
                 continue
+        if (x,y) == (0,0):
+            print(memory)
         
         return (x, y, line_statuses)
 
