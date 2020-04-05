@@ -49,6 +49,7 @@ class Scene:
                 uniform int tex_size;
                 uniform ivec2 resolution;
                 //uniform int levels;
+                uniform float rescue_domain_percentage;
                 uniform int square_size = 8;
                 uniform usampler3D tex;
 
@@ -102,12 +103,19 @@ class Scene:
                     ivec2 grid_coord = ivec2(gl_FragCoord.xy) / ivec2(square_size);
                     ivec2 grid_resolution = resolution / ivec2(square_size);
                     int square = grid_coord.y * grid_resolution.x + grid_coord.x;
-                    int squares = grid_resolution.x * grid_resolution.y;
+                    //int squares = grid_resolution.x * grid_resolution.y;
+                    int squares = int(ceil(tex_size * rescue_domain_percentage));
 
                     ivec3 icoord;
                     uvec3 ucoord;
-                
-                    icoord = ivec3(mod(square, tex_size), 0, 0);
+
+                    if(square >= squares || square >= tex_size) {
+                    
+                        gl_FragColor = vec4(color(0), 1.0);
+                        return;
+                    }
+
+                    icoord = ivec3(mod(square, squares), 0, 0);
 
                     //for(int i = 0; i < levels; ++i) {
                         ucoord = texelFetch(tex, icoord, 0).rgb;
@@ -131,6 +139,7 @@ class Scene:
         self.tex.use()
         self.prog['resolution'] = (512, 512)
         #self.prog['levels'] = levels
+        self.prog['rescue_domain_percentage'] = levels  # temporary use of levels to store the percentage of the rescue domain which is meaningful 
         self.prog['square_size'] = 16
 
     def clear(self, color=(0, 0, 0, 0)):
@@ -353,6 +362,9 @@ def texture(rescue):
     # so rescue.blocks needs padding to match this size 
     padding_size = rescue.sector_size * tex_size**(levels+1) - rescue.size
     logging.info(f'padding_size = {padding_size:_}')
+    # temporary use of levels to store the percentage of the rescue domain which is meaningful
+    levels = rescue.size / (rescue.size + padding_size)
+    logging.info(f'percentage of meaningful rescue domain = {levels}')
     if padding_size > 0:
         padding = Block(rescue.end, padding_size, '')
         rescue.blocks.append(padding)
@@ -407,14 +419,12 @@ def texture(rescue):
                 z += 1
                 pixel = next(pixels, None)
                 continue
-        if (x,y) == (0,0):
-            print(memory)
         
         return (x, y, line_statuses)
 
     first_line = Block(rescue.start, rescue.size, '')
 
-    first_line_summary = populate_line(first_line)
+    populate_line(first_line)
 
     return (tex, tex_size, levels)
 
