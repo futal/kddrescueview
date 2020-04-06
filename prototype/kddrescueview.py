@@ -46,20 +46,20 @@ class Scene:
             fragment_shader='''
                 #version 330
 
-                uniform int tex_size;
-                uniform ivec2 resolution;
-                //uniform int levels;
-                uniform float rescue_domain_percentage;
+                uniform int TextureResolution;
+                uniform ivec2 FragResolution;
+                uniform int levels;
+                //uniform float rescue_domain_percentage;
                 uniform int square_size = 8;
                 uniform usampler3D tex;
 
                 out vec4 gl_FragColor;
 
-                vec3 color(int status) {
+                vec4 color(int status) {
                     // compute a color from a bitfield status
 
                     if(status == 0) {
-                        return vec3(0.75);
+                        return vec4(0.75, 0.75, 0.75, 1.0);
                         // light grey if status is unknown
                     }
                     
@@ -72,17 +72,21 @@ class Scene:
                     float red = (nontried * 64. + nontrimmed * 255. + nonscraped * 32. + badsectors * 255.) / colors;
                     float green = (nontried * 64. + nontrimmed * 224. + nonscraped * 32. + recovered * 255.) / colors;
                     float blue =  (nontried * 64. + nonscraped * 255.) / colors;
-                    return vec3(red, green, blue); 
+                    return vec4(red, green, blue, 1.0);
                 }
+
                 
                 void main() {
-                    if(gl_FragCoord.x > resolution.x - mod(resolution.x - 1.0, square_size)) {
+                    // input: FragCoord.xy, FragResolution.xy
+
+                    // stage 1: margins and grid bars
+                    if(gl_FragCoord.x > FragResolution.x - mod(FragResolution.x - 1.0, square_size)) {
                         // right margin as there is not enough space for full squares
                         gl_FragColor = vec4(1.);
                         return;
                     }
                     
-                    if(gl_FragCoord.y > resolution.y - mod(resolution.y - 1.0, square_size)) {
+                    if(gl_FragCoord.y > FragResolution.y - mod(FragResolution.y - 1.0, square_size)) {
                         // top margin as there is not enough space for full squares
                         gl_FragColor = vec4(1.);
                         return;
@@ -100,30 +104,39 @@ class Scene:
                         return;
                     }
 
-                    ivec2 grid_coord = ivec2(gl_FragCoord.xy) / ivec2(square_size);
-                    ivec2 grid_resolution = resolution / ivec2(square_size);
-                    int square = grid_coord.y * grid_resolution.x + grid_coord.x;
-                    //int squares = grid_resolution.x * grid_resolution.y;
-                    int squares = int(ceil(tex_size * rescue_domain_percentage));
+                    // stage 2: (FragCood, FragResolution) -> (GridCoord, GridResolution)
+                    ivec2 GridCoord = ivec2(gl_FragCoord.xy) / ivec2(square_size);
+                    ivec2 GridResolution = FragResolution / ivec2(square_size);
 
+                    // stage 3: (GridCoord, GridResolution) -> (SquareCoord, SquareMaxResolution)
+                    int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
+                    int SquareMaxResolution = GridResolution.x * GridResolution.y;
+
+                    // stage 4: (SquareCoord, SquareMaxResolution) -> (TextureCoordAtLevel[i], TextureResolution)
                     ivec3 icoord;
                     uvec3 ucoord;
 
-                    if(square >= squares || square >= tex_size) {
+                    for(int i = 0; i < levels; ++i) {
+                        // stage 4: (SquareCoord, SquareMaxResolution) - (SquareCoordAtLevel[0..levels], SquareMaxResolutionAtLevel[0..levels]
+                        // stage 5: SquareCoordAtLevel[i] -> TextureCoordAtLevel[i]
+                        // stage 6: (SquareCoordAtLevel[i], SquareMaxResolutionAtLevel[i]) -> Texture lookup
+                        // stage 7: Texture component -> TextureCoordAtLevel[i+1]
+                    }    
+
+                    //int squares = int(ceil(TextureResolution * rescue_domain_percentage));
                     
-                        gl_FragColor = vec4(color(0), 1.0);
+                    if(SquareCoord >= TextureResolution) {
+                        // SquareCoord outside of texture: white background
+                        gl_FragColor = vec4(1.0);
                         return;
                     }
 
-                    icoord = ivec3(mod(square, squares), 0, 0);
+                    icoord = ivec3(SquareCoord, 0, 0);
+                    ucoord = texelFetch(tex, icoord, 0).rgb;
+                    icoord = ivec3(ucoord);
 
-                    //for(int i = 0; i < levels; ++i) {
-                        ucoord = texelFetch(tex, icoord, 0).rgb;
-                        icoord = ivec3(ucoord);
-                    //}
-                    vec3 rgb = color(int(ucoord.z));
-                
-                    gl_FragColor = vec4(rgb, 1.0); 
+                    // stage 8: Statuses from texture -> SquareColor
+                    gl_FragColor = color(int(ucoord.z));
                 }
             ''',
         )
@@ -132,14 +145,14 @@ class Scene:
         self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'vertices')
 
         #tex_size = 256
-        self.prog['tex_size'] = tex_size
+        self.prog['TextureResolution'] = tex_size
         #tex_data = np.random.uniform(low=0, high=tex_size-1, size=(tex_size,)*3+(4,)).astype('u1')
         self.tex = ctx.texture3d(size=(tex_size,)*3, components=3, data=tex_data, alignment=1, dtype='u1')
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
-        self.prog['resolution'] = (512, 512)
-        #self.prog['levels'] = levels
-        self.prog['rescue_domain_percentage'] = levels  # temporary use of levels to store the percentage of the rescue domain which is meaningful 
+        self.prog['FragResolution'] = (512, 512)
+        self.prog['levels'] = levels
+        #self.prog['rescue_domain_percentage'] = levels  # temporary use of levels to store the percentage of the rescue domain which is meaningful 
         self.prog['square_size'] = 16
 
     def clear(self, color=(0, 0, 0, 0)):
@@ -423,9 +436,7 @@ def texture(rescue):
         return (x, y, line_statuses)
 
     first_line = Block(rescue.start, rescue.size, '')
-
     populate_line(first_line)
-
     return (tex, tex_size, levels)
 
 
