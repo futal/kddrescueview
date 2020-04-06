@@ -124,12 +124,7 @@ class Scene:
 */
                     ivec3 icoord;  // WARNING: icoord needs z, y, x coordinates
                     uvec3 ucoord = uvec3(0);
-                // 1 lookup
-                    //int SquareResolution = int(ceil(pow(TextureResolution, 1) * rescue_domain_percentage));
-                // 2 lookups
-                    //int SquareResolution = int(ceil(pow(TextureResolution, 2) * rescue_domain_percentage));
-                // 3 lookups
-                    int SquareResolution = int(ceil(pow(TextureResolution, 3) * rescue_domain_percentage));
+                    int SquareResolution = int(ceil(pow(TextureResolution, lookups) * rescue_domain_percentage));
                     
                     if(SquareCoord >= SquareResolution) {
                         // SquareCoord outside of domain rescue at level 0
@@ -137,26 +132,10 @@ class Scene:
                         return;
                     }
 
-/*                // 1 lookup
-                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 0), TextureResolution), ucoord.y, ucoord.x);
-                    ucoord = texelFetch(tex, icoord, 0).xyz;
-                    icoord = ivec3(ucoord);
-
-                 // 2 lookups
-                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 1), TextureResolution), ucoord.y, ucoord.x);
-                    ucoord = texelFetch(tex, icoord, 0).xyz;
-                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 0), TextureResolution), ucoord.y, ucoord.x);
-                    ucoord = texelFetch(tex, icoord, 0).xyz;
-*/                 // 3 lookups
-                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 2), TextureResolution), ucoord.y, ucoord.x);
-                    ucoord = texelFetch(tex, icoord, 0).xyz;
-                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 1), TextureResolution), ucoord.y, ucoord.x);
-                    ucoord = texelFetch(tex, icoord, 0).xyz;
-                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 0), TextureResolution), ucoord.y, ucoord.x);
-                    ucoord = texelFetch(tex, icoord, 0).xyz;
-
-                    // uses uniform levels to compile
-                    for(int i = 0; i < lookups; ++i) {}    
+                    for(int i = lookups - 1; i >= 0; --i) {
+                        icoord = ivec3(mod(SquareCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
+                        ucoord = texelFetch(tex, icoord, 0).xyz;
+                    }   
 
                     // stage 8: Statuses from texture -> SquareColor
                     gl_FragColor = color(int(ucoord.z));
@@ -172,8 +151,8 @@ class Scene:
         self.tex = ctx.texture3d(size=(tex_size,)*3, components=3, data=tex_data, alignment=1, dtype='u1')
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
-        self.prog['FragResolution'] = (1800, 800)
-        self.prog['lookups'] = 2  # TODO: compute from the number of squares
+        self.prog['FragResolution'] = (1900, 1000)
+        self.prog['lookups'] = 3  # TODO: compute from the number of squares
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
         self.prog['square_size'] = 4
 
@@ -213,8 +192,8 @@ class Widget(QtOpenGL.QGLWidget):
         self.paintGL = self.render
 
     def init(self):
-        self.resize(1800, 800)
-        self.ctx.viewport = (0, 0, 1800, 800)
+        self.resize(1900, 1000)
+        self.ctx.viewport = (0, 0, 1900, 1000)
         self.scene = Scene(self.ctx, self.tex)
 
     def render(self):
@@ -465,7 +444,7 @@ def texture(rescue):
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-    rescue = Rescue('../tests/Seagate1.mapfile')
+    rescue = Rescue('../tests/example.log')
     tex = texture(rescue)
     
     app = QtWidgets.QApplication(sys.argv)
