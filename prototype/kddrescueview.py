@@ -77,57 +77,42 @@ class Scene:
 
                 
                 void main() {
-                    // stage 0: (gl_FragCoord.xy, FragResolution.xy) -> (CanvasCoord, CanvasResolution)
+                    // stage 1: (gl_FragCoord.xy, FragResolution.xy) -> (CanvasCoord, CanvasResolution)
                     ivec2 CanvasCoord = ivec2(gl_FragCoord.x, FragResolution.y - int(gl_FragCoord.y));  // TODO: add zoom and vertical_scrolling
                     ivec2 CanvasResolution = FragResolution;  // TODO: add zoom
 
-                    // stage 1: margins and grid bars
-                    if(CanvasCoord.x > CanvasResolution.x - mod(CanvasResolution.x, square_size)) {
-                        // right margin as there is not enough space for full squares
-                        gl_FragColor = vec4(1.);
-                        return;
-                    }
-                    
-                    if(CanvasCoord.y > CanvasResolution.y - mod(CanvasResolution.y, square_size)) {
-                        // top margin as there is not enough space for full squares
-                        gl_FragColor = vec4(1.);
-                        return;
-                    }
-
-                    if(mod(int(CanvasCoord.x), square_size) == 0) {
-                        // vertical grid bars
-                        gl_FragColor = vec4(1.);
-                        return;
-                    }
-                    
-                    if(mod(int(CanvasCoord.y), square_size) == 0) {
-                        // horizontal grid bars
+                    // stage 2: margins and grid bars
+                    if(    CanvasCoord.x > CanvasResolution.x - mod(CanvasResolution.x, square_size)  // right margin as there is not enough space for full squares
+                        || CanvasCoord.y > CanvasResolution.y - mod(CanvasResolution.y, square_size)  // bottom margin as there is not enough space for full squares
+                        || mod(int(CanvasCoord.x), square_size) == 0                                  // vertical grid bars
+                        || mod(int(CanvasCoord.y), square_size) == 0                                  // horizontal grid bars
+                    ) {
                         gl_FragColor = vec4(1.);
                         return;
                     }
 
-                    // stage 2: (CanvasCoord, CanvasResolution) -> (GridCoord, GridResolution)
+                    // stage 3: (CanvasCoord, CanvasResolution) -> (GridCoord, GridResolution)
                     ivec2 GridCoord = ivec2(CanvasCoord.xy) / ivec2(square_size);
                     ivec2 GridResolution = CanvasResolution / ivec2(square_size);
 
-                    // stage 3: (GridCoord, GridResolution) -> (SquareCoord, SquareMaxResolution, SquareResolution)
+                    // stage 4: (GridCoord, GridResolution) -> (SquareCoord, SquareMaxResolution, SquareResolution)
                     int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
                     int SquareMaxResolution = GridResolution.x * GridResolution.y;
-
 /*
-        // Test for a specific square number or texture pixel
-        if(SquareCoord == 256) {
-            gl_FragColor = vec4(1.0, 0.7, 0.7, 1.0);  // light pink
-            //gl_FragColor = color(int(texelFetch(tex, ivec3(94, 63, 0), 0).z)); 
-            return;
-        }
+            // Test for a specific square number or texture pixel
+            if(SquareCoord == 256) {
+                gl_FragColor = vec4(1.0, 0.7, 0.7, 1.0);  // light pink
+                //gl_FragColor = color(int(texelFetch(tex, ivec3(94, 63, 0), 0).z)); 
+                return;
+            }
 */
-                    ivec3 icoord;  // WARNING: icoord needs z, y, x coordinates
-                    uvec3 ucoord = uvec3(0);
+                    // stage 5: (SquareCoord) -> Statuses from Texture
+                    ivec3 icoord;             // WARNING: icoord needs z, y, x coordinates
+                    uvec3 ucoord = uvec3(0);  // starts at texture line (0, 0)
                     int SquareResolution = int(ceil(pow(TextureResolution, lookups) * rescue_domain_percentage));
                     
                     if(SquareCoord >= SquareResolution) {
-                        // SquareCoord outside of domain rescue at level 0
+                        // Square outside of rescue domain in almost white grey 
                         gl_FragColor = vec4(0.95);
                         return;
                     }
@@ -137,7 +122,7 @@ class Scene:
                         ucoord = texelFetch(tex, icoord, 0).xyz;
                     }   
 
-                    // stage 8: Statuses from texture -> SquareColor
+                    // stage 6: Statuses from texture -> Square color
                     gl_FragColor = color(int(ucoord.z));
                 }
             ''',
