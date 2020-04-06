@@ -48,7 +48,7 @@ class Scene:
 
                 uniform int TextureResolution;
                 uniform ivec2 FragResolution;
-                uniform int levels;
+                uniform int lookups;
                 uniform float rescue_domain_percentage;
                 uniform int square_size;
                 uniform usampler3D tex;
@@ -123,7 +123,7 @@ class Scene:
         }
 */
                     ivec3 icoord;  // WARNING: icoord needs z, y, x coordinates
-                    uvec3 ucoord;
+                    uvec3 ucoord = uvec3(0);
                 // 1 lookup
                     //int SquareResolution = int(ceil(pow(TextureResolution, 1) * rescue_domain_percentage));
                 // 2 lookups
@@ -138,17 +138,17 @@ class Scene:
                     }
 
 /*                // 1 lookup
-                    icoord = ivec3(SquareCoord/1, 0, 0);
+                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 0), TextureResolution), ucoord.y, ucoord.x);
                     ucoord = texelFetch(tex, icoord, 0).xyz;
                     icoord = ivec3(ucoord);
 
                  // 2 lookups
-                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 1), TextureResolution), 0, 0);
+                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 1), TextureResolution), ucoord.y, ucoord.x);
                     ucoord = texelFetch(tex, icoord, 0).xyz;
-                    icoord = ivec3(mod(SquareCoord, TextureResolution), ucoord.y, ucoord.x);
+                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 0), TextureResolution), ucoord.y, ucoord.x);
                     ucoord = texelFetch(tex, icoord, 0).xyz;
 */                 // 3 lookups
-                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 2), TextureResolution), 0, 0);
+                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 2), TextureResolution), ucoord.y, ucoord.x);
                     ucoord = texelFetch(tex, icoord, 0).xyz;
                     icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 1), TextureResolution), ucoord.y, ucoord.x);
                     ucoord = texelFetch(tex, icoord, 0).xyz;
@@ -156,7 +156,7 @@ class Scene:
                     ucoord = texelFetch(tex, icoord, 0).xyz;
 
                     // uses uniform levels to compile
-                    for(int i = 0; i < levels; ++i) {}    
+                    for(int i = 0; i < lookups; ++i) {}    
 
                     // stage 8: Statuses from texture -> SquareColor
                     gl_FragColor = color(int(ucoord.z));
@@ -173,7 +173,7 @@ class Scene:
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
         self.prog['FragResolution'] = (1800, 800)
-        self.prog['levels'] = 2  # TODO: compute from the number of squares
+        self.prog['lookups'] = 2  # TODO: compute from the number of squares
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
         self.prog['square_size'] = 4
 
