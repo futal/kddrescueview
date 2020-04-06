@@ -31,7 +31,7 @@ from collections import namedtuple, defaultdict
 
 
 class Scene:
-    def __init__(self, ctx, tex_data, tex_size, levels, reserve='16MB', ):
+    def __init__(self, ctx, tex, reserve='16MB'):
         self.ctx = ctx
         self.prog = self.ctx.program(
             vertex_shader='''
@@ -49,7 +49,7 @@ class Scene:
                 uniform int TextureResolution;
                 uniform ivec2 FragResolution;
                 uniform int levels;
-                //uniform float rescue_domain_percentage;
+                uniform float rescue_domain_percentage;
                 uniform int square_size = 8;
                 uniform usampler3D tex;
 
@@ -110,9 +110,10 @@ class Scene:
                     ivec2 GridCoord = ivec2(CanvasCoord.xy) / ivec2(square_size);
                     ivec2 GridResolution = CanvasResolution / ivec2(square_size);
 
-                    // stage 3: (GridCoord, GridResolution) -> (SquareCoord, SquareMaxResolution)
+                    // stage 3: (GridCoord, GridResolution) -> (SquareCoord, SquareMaxResolution, SquareResolution)
                     int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
                     int SquareMaxResolution = GridResolution.x * GridResolution.y;
+                    int SquareResolution = int(ceil(pow(TextureResolution, levels) * rescue_domain_percentage));
 
                     // stage 4: (SquareCoord, SquareMaxResolution) -> (TextureCoordAtLevel[i], TextureResolution)
                     ivec3 icoord;
@@ -146,15 +147,14 @@ class Scene:
         self.vbo = ctx.buffer(reserve='4MB', dynamic=True)
         self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'vertices')
 
-        #tex_size = 256
+        tex_data, tex_size, levels, rescue_domain_percentage = tex
         self.prog['TextureResolution'] = tex_size
-        #tex_data = np.random.uniform(low=0, high=tex_size-1, size=(tex_size,)*3+(4,)).astype('u1')
-        self.tex = ctx.texture3d(size=(tex_size,)*3, components=3, data=tex_data, alignment=1, dtype='u1')
-        self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
-        self.tex.use()
+        self.texture = ctx.texture3d(size=(tex_size,)*3, components=3, data=tex_data, alignment=1, dtype='u1')
+        self.texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
+        self.texture.use()
         self.prog['FragResolution'] = (512, 512)
-        self.prog['levels'] = levels
-        #self.prog['rescue_domain_percentage'] = levels  # temporary use of levels to store the percentage of the rescue domain which is meaningful 
+        #self.prog['levels'] = levels
+        #self.prog['rescue_domain_percentage'] = rescue_domain_percentage
         self.prog['square_size'] = 16
 
     def clear(self, color=(0, 0, 0, 0)):
@@ -175,7 +175,7 @@ vertices = np.array(
 
 
 class Widget(QtOpenGL.QGLWidget):
-    def __init__(self, tex_data, tex_size, levels):
+    def __init__(self, tex):
         fmt = QtOpenGL.QGLFormat()
         fmt.setVersion(3, 3)
         fmt.setProfile(QtOpenGL.QGLFormat.CoreProfile)
@@ -183,6 +183,7 @@ class Widget(QtOpenGL.QGLWidget):
         self.timer = QtCore.QElapsedTimer()        
         super(Widget, self).__init__(fmt, None)
         self.scene = None
+        self.tex = tex
 
     def paintGL(self):
         self.ctx = moderngl.create_context()
@@ -194,7 +195,7 @@ class Widget(QtOpenGL.QGLWidget):
     def init(self):
         self.resize(512, 512)
         self.ctx.viewport = (0, 0, 512, 512)
-        self.scene = Scene(self.ctx, tex_data, tex_size, levels)
+        self.scene = Scene(self.ctx, self.tex)
 
     def render(self):
         self.screen.use()
@@ -377,9 +378,9 @@ def texture(rescue):
     # so rescue.blocks needs padding to match this size 
     padding_size = rescue.sector_size * tex_size**(levels+1) - rescue.size
     logging.info(f'padding_size = {padding_size:_}')
-    # temporary use of levels to store the percentage of the rescue domain which is meaningful
-    levels = rescue.size / (rescue.size + padding_size)
-    logging.info(f'percentage of meaningful rescue domain = {levels}')
+    # percentage of the rescue domain which is meaningful
+    rescue_domain_percentage = rescue.size / (rescue.size + padding_size)
+    logging.info(f'percentage of meaningful rescue domain = {rescue_domain_percentage}')
     if padding_size > 0:
         padding = Block(rescue.end, padding_size, '')
         rescue.blocks.append(padding)
@@ -439,15 +440,15 @@ def texture(rescue):
 
     first_line = Block(rescue.start, rescue.size, '')
     populate_line(first_line)
-    return (tex, tex_size, levels)
+    return (tex, tex_size, levels, rescue_domain_percentage)
 
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
     rescue = Rescue('../tests/Seagate1.mapfile')
-    tex_data, tex_size, levels = texture(rescue)
+    tex = texture(rescue)
     
     app = QtWidgets.QApplication(sys.argv)
-    widget = Widget(tex_data, tex_size, levels)
+    widget = Widget(tex)
     widget.show()
     sys.exit(app.exec_())
