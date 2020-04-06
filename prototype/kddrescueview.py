@@ -122,94 +122,41 @@ class Scene:
             return;
         }
 */
-
-/*
-                    int SquareResolution = int(ceil(pow(TextureResolution, 1) * rescue_domain_percentage));
-// Texture lookup when using only the first texture line
                     ivec3 icoord;  // WARNING: icoord needs z, y, x coordinates
                     uvec3 ucoord;
+                // 1 lookup
+                    //int SquareResolution = int(ceil(pow(TextureResolution, 1) * rescue_domain_percentage));
+                // 2 lookups
+                    //int SquareResolution = int(ceil(pow(TextureResolution, 2) * rescue_domain_percentage));
+                // 3 lookups
+                    int SquareResolution = int(ceil(pow(TextureResolution, 3) * rescue_domain_percentage));
+                    
                     if(SquareCoord >= SquareResolution) {
                         // SquareCoord outside of domain rescue at level 0
                         gl_FragColor = vec4(0.95);
                         return;
                     }
 
-                    icoord = ivec3(SquareCoord/1, 0, 0);  // WARNING: icoord needs z, y, x coordinates
-                    ucoord = texelFetch(tex, icoord, 0).rgb;
+/*                // 1 lookup
+                    icoord = ivec3(SquareCoord/1, 0, 0);
+                    ucoord = texelFetch(tex, icoord, 0).xyz;
                     icoord = ivec3(ucoord);
-*/
-/*
 
-                    int SquareResolution = int(ceil(pow(TextureResolution, 2) * rescue_domain_percentage));
-// Texture lookup when using two lookups in the texture
-                    ivec3 icoord_at_level0;  // WARNING: icoord needs z, y, x coordinates
-                    ivec3 icoord_at_level1;  // WARNING: icoord needs z, y, x coordinates
-                    uvec3 ucoord_at_level0;
-                    uvec3 ucoord_at_level1;
-                    uvec3 ucoord;
+                 // 2 lookups
+                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 1), TextureResolution), 0, 0);
+                    ucoord = texelFetch(tex, icoord, 0).xyz;
+                    icoord = ivec3(mod(SquareCoord, TextureResolution), ucoord.y, ucoord.x);
+                    ucoord = texelFetch(tex, icoord, 0).xyz;
+*/                 // 3 lookups
+                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 2), TextureResolution), 0, 0);
+                    ucoord = texelFetch(tex, icoord, 0).xyz;
+                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 1), TextureResolution), ucoord.y, ucoord.x);
+                    ucoord = texelFetch(tex, icoord, 0).xyz;
+                    icoord = ivec3(mod(SquareCoord/pow(TextureResolution, 0), TextureResolution), ucoord.y, ucoord.x);
+                    ucoord = texelFetch(tex, icoord, 0).xyz;
 
-                    if(SquareCoord >= SquareResolution) {
-                        // SquareCoord outside of domain rescue
-                        gl_FragColor = vec4(0.95);  // almost white grey outside of domain rescue (350+ squares with the current mapfile)
-                        return;
-                    }
-
-                    icoord_at_level0 = ivec3(SquareCoord/TextureResolution, 0, 0);  // WARNING: icoord needs z, y, x coordinates
-                    ucoord_at_level0 = texelFetch(tex, icoord_at_level0, 0).rgb;
-                    icoord_at_level1 = ivec3(                                       // WARNING: icoord needs z, y, x coordinates
-                                                mod(SquareCoord, TextureResolution),
-                                                ucoord_at_level0.y,
-                                                ucoord_at_level0.x
-                                            );
-                    ucoord_at_level1 = texelFetch(tex, icoord_at_level1, 0).rgb;
-
-                    ucoord = ucoord_at_level1;  // hence we don't change the final gl_FragColor instructions
-*/
-
-                    int SquareResolution = int(ceil(pow(TextureResolution, 3) * rescue_domain_percentage));
-// Texture lookup when using three lookups in the texture
-                    ivec3 icoord_at_level0;  // WARNING: icoord needs z, y, x coordinates
-                    ivec3 icoord_at_level1;  // WARNING: icoord needs z, y, x coordinates
-                    ivec3 icoord_at_level2;  // WARNING: icoord needs z, y, x coordinates
-                    uvec3 ucoord_at_level0;
-                    uvec3 ucoord_at_level1;
-                    uvec3 ucoord_at_level2;
-                    uvec3 ucoord;
-
-                    if(SquareCoord >= SquareResolution) {
-                        // SquareCoord outside of domain rescue
-                        gl_FragColor = vec4(0.95);  // almost white grey outside of domain rescue (350+ squares with the current mapfile)
-                        return;
-                    }
-
-                    icoord_at_level0 = ivec3(  // WARNING: icoord needs z, y, x coordinates
-                                                mod(SquareCoord/pow(TextureResolution, 2), TextureResolution),
-                                                0,
-                                                0
-                                            );
-                    ucoord_at_level0 = texelFetch(tex, icoord_at_level0, 0).rgb;
-                    icoord_at_level1 = ivec3(                                       // WARNING: icoord needs z, y, x coordinates
-                                                mod(SquareCoord/pow(TextureResolution, 1), TextureResolution),
-                                                ucoord_at_level0.y,
-                                                ucoord_at_level0.x
-                                            );
-                    ucoord_at_level1 = texelFetch(tex, icoord_at_level1, 0).rgb;
-                    icoord_at_level2 = ivec3(                                       // WARNING: icoord needs z, y, x coordinates
-                                                mod(SquareCoord/pow(TextureResolution, 0), TextureResolution),
-                                                ucoord_at_level1.y,
-                                                ucoord_at_level1.x
-                                            );
-                    ucoord_at_level2 = texelFetch(tex, icoord_at_level2, 0).rgb;
-                    ucoord = ucoord_at_level1;  // hence we don't change the final gl_FragColor instructions
-
-
-                    // Template to have a dynamic depth of lookup in the texture
-                    for(int i = 0; i < levels; ++i) {
-                        // stage 4: (SquareCoord, SquareMaxResolution) -> (SquareCoordAtLevel[0..levels], SquareMaxResolutionAtLevel[0..levels]
-                        // stage 5: SquareCoordAtLevel[i] -> TextureCoordAtLevel[i]
-                        // stage 6: (SquareCoordAtLevel[i], SquareMaxResolutionAtLevel[i]) -> Texture lookup
-                        // stage 7: Texture component -> TextureCoordAtLevel[i+1]
-                    }    
+                    // uses uniform levels to compile
+                    for(int i = 0; i < levels; ++i) {}    
 
                     // stage 8: Statuses from texture -> SquareColor
                     gl_FragColor = color(int(ucoord.z));
