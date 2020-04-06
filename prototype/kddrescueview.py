@@ -77,36 +77,38 @@ class Scene:
 
                 
                 void main() {
-                    // input: FragCoord.xy, FragResolution.xy
+                    // stage 0: (gl_FragCoord.xy, FragResolution.xy) -> (CanvasCoord, CanvasResolution)
+                    ivec2 CanvasCoord = ivec2(gl_FragCoord.x, FragResolution.y - int(gl_FragCoord.y));  // TODO: add zoom and vertical_scrolling
+                    ivec2 CanvasResolution = FragResolution;  // TODO: add zoom
 
                     // stage 1: margins and grid bars
-                    if(gl_FragCoord.x > FragResolution.x - mod(FragResolution.x - 1.0, square_size)) {
+                    if(CanvasCoord.x > CanvasResolution.x - mod(CanvasResolution.x, square_size)) {
                         // right margin as there is not enough space for full squares
                         gl_FragColor = vec4(1.);
                         return;
                     }
                     
-                    if(gl_FragCoord.y > FragResolution.y - mod(FragResolution.y - 1.0, square_size)) {
+                    if(CanvasCoord.y > CanvasResolution.y - mod(CanvasResolution.y, square_size)) {
                         // top margin as there is not enough space for full squares
                         gl_FragColor = vec4(1.);
                         return;
                     }
 
-                    if(mod(int(gl_FragCoord.x),square_size) == 0) {
+                    if(mod(int(CanvasCoord.x), square_size) == 0) {
                         // vertical grid bars
                         gl_FragColor = vec4(1.);
                         return;
                     }
                     
-                    if(mod(int(gl_FragCoord.y),square_size) == 0) {
+                    if(mod(int(CanvasCoord.y), square_size) == 0) {
                         // horizontal grid bars
                         gl_FragColor = vec4(1.);
                         return;
                     }
 
-                    // stage 2: (FragCood, FragResolution) -> (GridCoord, GridResolution)
-                    ivec2 GridCoord = ivec2(gl_FragCoord.xy) / ivec2(square_size);
-                    ivec2 GridResolution = FragResolution / ivec2(square_size);
+                    // stage 2: (CanvasCoord, CanvasResolution) -> (GridCoord, GridResolution)
+                    ivec2 GridCoord = ivec2(CanvasCoord.xy) / ivec2(square_size);
+                    ivec2 GridResolution = CanvasResolution / ivec2(square_size);
 
                     // stage 3: (GridCoord, GridResolution) -> (SquareCoord, SquareMaxResolution)
                     int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
