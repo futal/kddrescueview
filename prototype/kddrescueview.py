@@ -50,7 +50,7 @@ class Scene:
                 uniform ivec2 FragResolution;
                 uniform int levels;
                 uniform float rescue_domain_percentage;
-                uniform int square_size = 8;
+                uniform int square_size;
                 uniform usampler3D tex;
 
                 out vec4 gl_FragColor;
@@ -138,7 +138,7 @@ class Scene:
                     ucoord = texelFetch(tex, icoord, 0).rgb;
                     icoord = ivec3(ucoord);
 */
-
+/*
 
                     int SquareResolution = int(ceil(pow(TextureResolution, 2) * rescue_domain_percentage));
 // Texture lookup when using two lookups in the texture
@@ -164,7 +164,43 @@ class Scene:
                     ucoord_at_level1 = texelFetch(tex, icoord_at_level1, 0).rgb;
 
                     ucoord = ucoord_at_level1;  // hence we don't change the final gl_FragColor instructions
+*/
 
+                    int SquareResolution = int(ceil(pow(TextureResolution, 3) * rescue_domain_percentage));
+// Texture lookup when using three lookups in the texture
+                    ivec3 icoord_at_level0;  // WARNING: icoord needs z, y, x coordinates
+                    ivec3 icoord_at_level1;  // WARNING: icoord needs z, y, x coordinates
+                    ivec3 icoord_at_level2;  // WARNING: icoord needs z, y, x coordinates
+                    uvec3 ucoord_at_level0;
+                    uvec3 ucoord_at_level1;
+                    uvec3 ucoord_at_level2;
+                    uvec3 ucoord;
+
+                    if(SquareCoord >= SquareResolution) {
+                        // SquareCoord outside of domain rescue
+                        gl_FragColor = vec4(0.95);  // almost white grey outside of domain rescue (350+ squares with the current mapfile)
+                        return;
+                    }
+
+                    icoord_at_level0 = ivec3(  // WARNING: icoord needs z, y, x coordinates
+                                                mod(SquareCoord/pow(TextureResolution, 2), TextureResolution),
+                                                0,
+                                                0
+                                            );
+                    ucoord_at_level0 = texelFetch(tex, icoord_at_level0, 0).rgb;
+                    icoord_at_level1 = ivec3(                                       // WARNING: icoord needs z, y, x coordinates
+                                                mod(SquareCoord/pow(TextureResolution, 1), TextureResolution),
+                                                ucoord_at_level0.y,
+                                                ucoord_at_level0.x
+                                            );
+                    ucoord_at_level1 = texelFetch(tex, icoord_at_level1, 0).rgb;
+                    icoord_at_level2 = ivec3(                                       // WARNING: icoord needs z, y, x coordinates
+                                                mod(SquareCoord/pow(TextureResolution, 0), TextureResolution),
+                                                ucoord_at_level1.y,
+                                                ucoord_at_level1.x
+                                            );
+                    ucoord_at_level2 = texelFetch(tex, icoord_at_level2, 0).rgb;
+                    ucoord = ucoord_at_level1;  // hence we don't change the final gl_FragColor instructions
 
 
                     // Template to have a dynamic depth of lookup in the texture
@@ -189,10 +225,10 @@ class Scene:
         self.tex = ctx.texture3d(size=(tex_size,)*3, components=3, data=tex_data, alignment=1, dtype='u1')
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
-        self.prog['FragResolution'] = (512, 512)
+        self.prog['FragResolution'] = (1800, 800)
         self.prog['levels'] = 2  # TODO: compute from the number of squares
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
-        self.prog['square_size'] = 16
+        self.prog['square_size'] = 4
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
@@ -230,8 +266,8 @@ class Widget(QtOpenGL.QGLWidget):
         self.paintGL = self.render
 
     def init(self):
-        self.resize(512, 512)
-        self.ctx.viewport = (0, 0, 512, 512)
+        self.resize(1800, 800)
+        self.ctx.viewport = (0, 0, 1800, 800)
         self.scene = Scene(self.ctx, self.tex)
 
     def render(self):
