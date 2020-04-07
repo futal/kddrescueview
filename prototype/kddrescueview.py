@@ -46,7 +46,7 @@ class Scene:
             fragment_shader='''
                 #version 330
 
-                uniform int TextureResolution;
+                uniform int pow2_tex_size;
                 uniform ivec2 FragResolution;
                 uniform int lookups;
                 uniform float zoom_factor;
@@ -79,6 +79,8 @@ class Scene:
 
                 
                 void main() {
+                    int TextureResolution = int(pow(2, pow2_tex_size));
+                
                     // stage 1: (gl_FragCoord.xy, FragResolution.xy) -> (CanvasCoord, CanvasResolution)
                     ivec2 CanvasResolution = ivec2(FragResolution.x, FragResolution.y * zoom_factor);
                     ivec2 CanvasCoord = ivec2(gl_FragCoord.x, int(FragResolution.y * (1.0 + vertical_scrolling)) - int(gl_FragCoord.y)); 
@@ -136,8 +138,9 @@ class Scene:
         self.vbo = ctx.buffer(reserve='4MB', dynamic=True)
         self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'vertices')
 
-        tex_data, tex_size, levels, rescue_domain_percentage = tex
-        self.prog['TextureResolution'] = tex_size
+        tex_data, pow2_tex_size, rescue_domain_percentage = tex
+        tex_size = 2**pow2_tex_size
+        self.prog['pow2_tex_size'] = pow2_tex_size
         self.tex = ctx.texture3d(size=(tex_size,)*3, components=3, data=tex_data, alignment=1, dtype='u1')
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
@@ -346,8 +349,9 @@ def color(statuses):
 def texture(rescue):
     '''create a 3D texture representing the rescue domain as a tree'''
 
-    tex_size = 256  # 2**10 = 256 (see levels computation where 10 is used), OpenGl 3.3 requires 3D textures to support at least 256*256*256 textures
-
+    pow2_tex_size = 8            # guaranteed up to 8:
+    tex_size = 2**pow2_tex_size  # OpenGl 3.3 supports at least 256*256*256 textures
+ 
     # create an empty texture
     tex_shape = (tex_size,)*3+(3,)
     tex = np.zeros(shape=tex_shape).astype('u1')
@@ -373,19 +377,12 @@ def texture(rescue):
 
 
     # compute the number of tree levels stored recursively in the texture 
-    levels = int(np.ceil(np.log2(rescue.size/rescue.sector_size)/10))  # 10 comes from 256 = 2**10
-    logging.info(f'levels = {levels}')
-    # at level 0, each pixel represents 1 sector (256**0)
-    # at level 1, each pixel represents 256 sectors (256**1)
-    # at level 2, each pixel represents 65_536 sectors (256**2)
-    # at level 3, each pixel represents 16_777_216 sectors
-    # at level 4, each pixel represents 4_294_967_296 sectors
-    # ...
-    # at level n, each pixel represents 256**n sectors    
+    texture_tree_depth = int(np.ceil(np.log2(rescue.size/rescue.sector_size)/pow2_tex_size))
+    logging.info(f'texture_tree_depth = {texture_tree_depth}')
 
     # the texture represents sector_size * tex_size**(levels+1) bytes
     # so rescue.blocks needs padding to match this size 
-    padding_size = rescue.sector_size * tex_size**(levels+1) - rescue.size
+    padding_size = rescue.sector_size * tex_size**texture_tree_depth - rescue.size
     logging.info(f'padding_size = {padding_size:_}')
     # percentage of the rescue domain which is meaningful
     rescue_domain_percentage = rescue.size / (rescue.size + padding_size)
@@ -449,7 +446,7 @@ def texture(rescue):
 
     first_line = Block(rescue.start, rescue.size, '')
     populate_line(first_line)
-    return (tex, tex_size, levels, rescue_domain_percentage)
+    return (tex, pow2_tex_size, rescue_domain_percentage)
 
 
 if __name__ == '__main__':
