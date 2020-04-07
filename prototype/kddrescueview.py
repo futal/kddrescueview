@@ -80,65 +80,57 @@ class Scene:
 
                 
                 void main() {
-                    // stage 0: computes all resolutions
+                    // stage 1: computes all resolutions
                     int TextureResolution = int(pow(2, pow2_tex_size));
-                    int SquareMaxResolution = int(pow(2, pow2_zoom_level));
+                    float SquareMaxResolution = pow(2., float(pow2_zoom_level));
                     int SquareResolution = int(ceil(SquareMaxResolution * rescue_domain_percentage));
                     int GridColumns = int(FragResolution.x) / square_size;
                     int GridRows = int(ceil(float(SquareResolution) / float(GridColumns)));
                     ivec2 GridResolution = ivec2(GridColumns, GridRows);
-                    ivec2 CanvasResolution = GridResolution * square_size;
-                
-                    // stage 1: (gl_FragCoord.xy, FragResolution.xy) -> (CanvasCoord, CanvasResolution)
-                    CanvasResolution = ivec2(FragResolution.x, FragResolution.y * zoom_factor);
-                    ivec2 CanvasCoord = ivec2(gl_FragCoord.x, int(FragResolution.y * (1.0 + vertical_scrolling)) - int(gl_FragCoord.y)); 
+                    ivec2 CanvasResolution = ivec2(FragResolution.x, GridResolution.y * square_size);
 
-                    // stage 2: margins and grid bars
+                    // stage 2: computes all coordinates
+                    ivec2 CanvasCoord = ivec2(gl_FragCoord.x, int(FragResolution.y * (1.0 + vertical_scrolling)) - int(gl_FragCoord.y));
+                    ivec2 GridCoord = CanvasCoord / square_size;
+                    int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
+
+                    // stage 3: margins and grid bars
                     if(    CanvasCoord.x > CanvasResolution.x - mod(CanvasResolution.x, square_size)  // right margin as there is not enough space for full squares
                         || CanvasCoord.y > CanvasResolution.y - mod(CanvasResolution.y, square_size)  // bottom margin as there is not enough space for full squares
-                        || mod(int(CanvasCoord.x), square_size) == 0                                  // vertical grid bars
-                        || mod(int(CanvasCoord.y), square_size) == 0                                  // horizontal grid bars
+                        || mod(CanvasCoord.x, square_size) == 0                                  // vertical grid bars
+                        || mod(CanvasCoord.y, square_size) == 0                                  // horizontal grid bars
                     ) {
                         gl_FragColor = vec4(1.);
                         return;
                     }
-
-                    // stage 3: (CanvasCoord, CanvasResolution) -> (GridCoord, GridResolution)
-                    ivec2 GridCoord = ivec2(CanvasCoord.xy) / ivec2(square_size);
-                    GridResolution = CanvasResolution / ivec2(square_size);
-
-                    // stage 4: (GridCoord, GridResolution) -> (SquareCoord, SquareMaxResolution, SquareResolution)
-                    int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
-                    SquareMaxResolution = GridResolution.x * GridResolution.y;
-                    SquareResolution = int(ceil(pow(TextureResolution, lookups) * rescue_domain_percentage));
-
 /*
-            // Test for a specific square number or texture pixel
-            if(SquareCoord == 256) {
-                gl_FragColor = vec4(1.0, 0.7, 0.7, 1.0);  // light pink
-                //gl_FragColor = color(int(texelFetch(tex, ivec3(94, 63, 0), 0).z)); 
-                return;
-            }
+                    // stage 3bis: test for a specific square number or texture pixel
+                    if(SquareCoord == 80) {
+                        gl_FragColor = vec4(1.0, 0.5, 0.5, 1.0);  // pink
+                        //gl_FragColor = color(int(texelFetch(tex, ivec3(94, 63, 0), 0).z));
+                        return;
+                    }
 */
+                    // stage 4: squares outside of rescue domain in almost grey 
+                    if(SquareCoord >= SquareResolution) {
+                        gl_FragColor = vec4(0.95);
+                        return;
+                    }
 
                     // stage 5: (SquareCoord) -> Statuses from Texture
                     ivec3 icoord;             // WARNING: icoord needs z, y, x coordinates
                     uvec3 ucoord = uvec3(0);  // starts at texture line (0, 0)
-
-                    
-                    if(SquareCoord >= SquareResolution) {
-                        // Square outside of rescue domain in almost white grey 
-                        gl_FragColor = vec4(0.95);
-                        return;
-                    }
 
                     for(int i = lookups - 1; i >= 0; --i) {
                         icoord = ivec3(mod(SquareCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
                         ucoord = texelFetch(tex, icoord, 0).xyz;
                     }   
 
+                    // dummy use of unused uniforms
                     for(int i = 0; i < pow2_zoom_level; ++i) {}
+                    for(float i = 0.0; i < zoom_factor; i=i+1.0) {}
 
+                    
                     // stage 6: Statuses from texture -> Square color
                     gl_FragColor = color(int(ucoord.z));
                 }
@@ -160,7 +152,7 @@ class Scene:
         self.prog['vertical_scrolling'] = 0.0
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
         self.prog['square_size'] = 8
-        self.prog['pow2_zoom_level'] = 8
+        self.prog['pow2_zoom_level'] = 31
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
@@ -218,9 +210,10 @@ class Widget(QtOpenGL.QGLWidget):
             # TODO: correct vertical position to stay on the canvas
         else:
             # scroll
-            v_pos = self.scene.prog['vertical_scrolling'].value - steps / 50.
-            v_pos_max = self.scene.prog['zoom_factor'].value - 1.0
-            v_pos = 0.0 if v_pos < 0.0 else v_pos_max if v_pos > v_pos_max else v_pos
+            v_pos = self.scene.prog['vertical_scrolling'].value - steps / 10.
+            #v_pos_max = self.scene.prog['zoom_factor'].value - 1.0
+            #v_pos = 0.0 if v_pos < 0.0 else v_pos_max if v_pos > v_pos_max else v_pos
+            v_pos = 0.0 if v_pos < 0.0 else v_pos
             self.scene.prog['vertical_scrolling'] = v_pos
             logging.info(f'vertical_scrolling = {v_pos}')
         event.accept()
