@@ -47,6 +47,7 @@ class Scene:
                 #version 330
 
                 uniform int pow2_tex_size;
+                uniform int pow2_zoom_level;
                 uniform ivec2 FragResolution;
                 uniform int lookups;
                 uniform float zoom_factor;
@@ -79,10 +80,17 @@ class Scene:
 
                 
                 void main() {
+                    // stage 0: computes all resolutions
                     int TextureResolution = int(pow(2, pow2_tex_size));
+                    int SquareMaxResolution = int(pow(2, pow2_zoom_level));
+                    int SquareResolution = int(ceil(SquareMaxResolution * rescue_domain_percentage));
+                    int GridColumns = int(FragResolution.x) / square_size;
+                    int GridRows = int(ceil(float(SquareResolution) / float(GridColumns)));
+                    ivec2 GridResolution = ivec2(GridColumns, GridRows);
+                    ivec2 CanvasResolution = GridResolution * square_size;
                 
                     // stage 1: (gl_FragCoord.xy, FragResolution.xy) -> (CanvasCoord, CanvasResolution)
-                    ivec2 CanvasResolution = ivec2(FragResolution.x, FragResolution.y * zoom_factor);
+                    CanvasResolution = ivec2(FragResolution.x, FragResolution.y * zoom_factor);
                     ivec2 CanvasCoord = ivec2(gl_FragCoord.x, int(FragResolution.y * (1.0 + vertical_scrolling)) - int(gl_FragCoord.y)); 
 
                     // stage 2: margins and grid bars
@@ -97,12 +105,12 @@ class Scene:
 
                     // stage 3: (CanvasCoord, CanvasResolution) -> (GridCoord, GridResolution)
                     ivec2 GridCoord = ivec2(CanvasCoord.xy) / ivec2(square_size);
-                    ivec2 GridResolution = CanvasResolution / ivec2(square_size);
+                    GridResolution = CanvasResolution / ivec2(square_size);
 
                     // stage 4: (GridCoord, GridResolution) -> (SquareCoord, SquareMaxResolution, SquareResolution)
                     int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
-                    int SquareMaxResolution = GridResolution.x * GridResolution.y;
-                    int SquareResolution = int(ceil(pow(TextureResolution, lookups) * rescue_domain_percentage));
+                    SquareMaxResolution = GridResolution.x * GridResolution.y;
+                    SquareResolution = int(ceil(pow(TextureResolution, lookups) * rescue_domain_percentage));
 
 /*
             // Test for a specific square number or texture pixel
@@ -129,6 +137,8 @@ class Scene:
                         ucoord = texelFetch(tex, icoord, 0).xyz;
                     }   
 
+                    for(int i = 0; i < pow2_zoom_level; ++i) {}
+
                     // stage 6: Statuses from texture -> Square color
                     gl_FragColor = color(int(ucoord.z));
                 }
@@ -150,6 +160,7 @@ class Scene:
         self.prog['vertical_scrolling'] = 0.0
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
         self.prog['square_size'] = 8
+        self.prog['pow2_zoom_level'] = 8
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
