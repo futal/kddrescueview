@@ -105,7 +105,7 @@ class Scene:
                     }
 /*
                     // stage 3bis: test for a specific square number or texture pixel
-                    if(SquareCoord == 80) {
+                    if(SquareCoord == 0) {
                         gl_FragColor = vec4(1.0, 0.5, 0.5, 1.0);  // pink
                         //gl_FragColor = color(int(texelFetch(tex, ivec3(94, 63, 0), 0).z));
                         return;
@@ -118,10 +118,11 @@ class Scene:
                     }
 
                     // stage 5: (SquareCoord) -> Statuses from Texture
-                    ivec3 icoord;             // WARNING: icoord needs z, y, x coordinates
+                    ivec3 icoord;             // NOTE: texture needs z, y, x coordinates
                     uvec3 ucoord = uvec3(0);  // starts at texture line (0, 0)
+                    int indirections = int(pow2_zoom_level / pow2_tex_size);
 
-                    for(int i = lookups - 1; i >= 0; --i) {
+                    for(int i = indirections; i >= 0; --i) {
                         icoord = ivec3(mod(SquareCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
                         ucoord = texelFetch(tex, icoord, 0).xyz;
                     }   
@@ -129,7 +130,7 @@ class Scene:
                     // dummy use of unused uniforms
                     for(int i = 0; i < pow2_zoom_level; ++i) {}
                     for(float i = 0.0; i < zoom_factor; i=i+1.0) {}
-
+                    for(int i = 0; i < lookups; ++i) {}
                     
                     // stage 6: Statuses from texture -> Square color
                     gl_FragColor = color(int(ucoord.z));
@@ -152,7 +153,7 @@ class Scene:
         self.prog['vertical_scrolling'] = 0.0
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
         self.prog['square_size'] = 8
-        self.prog['pow2_zoom_level'] = 31
+        self.prog['pow2_zoom_level'] = 21
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
