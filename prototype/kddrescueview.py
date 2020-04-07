@@ -49,7 +49,7 @@ class Scene:
                 uniform int TextureResolution;
                 uniform ivec2 FragResolution;
                 uniform int lookups;
-                uniform float zoom;
+                uniform float zoom_factor;
                 uniform float vertical_scrolling;
                 uniform float rescue_domain_percentage;
                 uniform int square_size;
@@ -80,7 +80,7 @@ class Scene:
                 
                 void main() {
                     // stage 1: (gl_FragCoord.xy, FragResolution.xy) -> (CanvasCoord, CanvasResolution)
-                    ivec2 CanvasResolution = ivec2(FragResolution.x, FragResolution.y * zoom);
+                    ivec2 CanvasResolution = ivec2(FragResolution.x, FragResolution.y * zoom_factor);
                     ivec2 CanvasCoord = ivec2(gl_FragCoord.x, int(FragResolution.y * (1.0 + vertical_scrolling)) - int(gl_FragCoord.y)); 
 
                     // stage 2: margins and grid bars
@@ -143,8 +143,7 @@ class Scene:
         self.tex.use()
         self.prog['FragResolution'] = (1900, 1000)
         self.prog['lookups'] = 2  # TODO: compute from the number of squares
-        self.prog['zoom'] = 1.1**10  # TODO: change the zoom level (exponent) dynamically
-        self.prog['vertical_scrolling'] = 0.005  # TODO: change the vertical scrolling dynamically with the mouse wheel in [0.0, zoom-1.0]
+        self.prog['zoom_factor'] = 1.1**10  # TODO: change the zoom level (exponent) dynamically
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
         self.prog['square_size'] = 8
 
@@ -157,12 +156,35 @@ class Scene:
         self.vbo.write(data)
         self.vao.render(moderngl.TRIANGLES, vertices=len(data))
 
+    def zoom(self, zoom_factor):
+        self.prog['zoom_factor'] = zoom_factor
+
+    def scroll(self, vertical_scrolling):
+        self.prog['vertical_scrolling'] = vertical_scrolling
 
 vertices = np.array(
     # upper left triangle  bottom right triangle
     [ [-1.0, +1.0, -1.0,   +1.0, -1.0, +1.0],  # x
       [+1.0, +1.0, -1.0,   +1.0, -1.0, -1.0],  # y
     ]).T  # transpose for OpenGL
+
+
+class ZoomScrollTool:
+    def __init__(self, zoom_level=1, vertical_scroll=0.0):
+        self.zoom_level = zoom_level
+        self.vertical_scroll = vertical_scroll
+
+    def zoom(self, level):
+        self.zoom_level += level
+        if self.zoom_level < 1: self.zoom_level = 1
+
+    def scroll(self, vertical_scroll):
+        '''vertical scrolling in the range [0.0, zoom_factor - 1.0]'''
+        self.vertical_scroll += vertical_scroll
+        if self.vertical_scroll < 0.0: self.vertical_scroll = 0.0
+        if self.vertical_scroll > self.zoom_factor - 1.0: self.vertical_scroll = self.zoom_factor - 1.0
+
+    zoom_factor = property(lambda self: 1.05**self.zoom_level)
 
 
 class Widget(QtOpenGL.QGLWidget):
@@ -175,6 +197,7 @@ class Widget(QtOpenGL.QGLWidget):
         super(Widget, self).__init__(fmt, None)
         self.scene = None
         self.tex = tex
+        self.zoom_scroll_tool = ZoomScrollTool()
 
     def paintGL(self):
         self.ctx = moderngl.create_context()
@@ -192,6 +215,16 @@ class Widget(QtOpenGL.QGLWidget):
         self.screen.use()
         self.scene.clear()
         self.scene.plot(vertices)
+
+    def wheelEvent(self, event):
+        #modifiers = QtGui.QApplication.keyboardModifiers()
+        #if modifiers == QtCore.Qt.ControlModifier:
+            # do your processing (for Ctrl+wheel to zoom)
+        self.zoom_scroll_tool.scroll(event.delta)
+        print(f'scroll change += {event.delta}')
+        print(f'vertical_scroll = {self.zoom_scroll_tool.vertical_scroll}')
+        self.scene.scroll(self.zoom_scroll_tool.vertical_scroll)
+        self.update()
 
 
 
