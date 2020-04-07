@@ -49,6 +49,8 @@ class Scene:
                 uniform int TextureResolution;
                 uniform ivec2 FragResolution;
                 uniform int lookups;
+                uniform float zoom;
+                uniform float vertical_scrolling;
                 uniform float rescue_domain_percentage;
                 uniform int square_size;
                 uniform usampler3D tex;
@@ -78,8 +80,8 @@ class Scene:
                 
                 void main() {
                     // stage 1: (gl_FragCoord.xy, FragResolution.xy) -> (CanvasCoord, CanvasResolution)
-                    ivec2 CanvasCoord = ivec2(gl_FragCoord.x, FragResolution.y - int(gl_FragCoord.y));  // TODO: add zoom and vertical_scrolling
-                    ivec2 CanvasResolution = FragResolution;  // TODO: add zoom
+                    ivec2 CanvasResolution = ivec2(FragResolution.x, FragResolution.y * zoom);
+                    ivec2 CanvasCoord = ivec2(gl_FragCoord.x, int(FragResolution.y * (1.0 + vertical_scrolling)) - int(gl_FragCoord.y)); 
 
                     // stage 2: margins and grid bars
                     if(    CanvasCoord.x > CanvasResolution.x - mod(CanvasResolution.x, square_size)  // right margin as there is not enough space for full squares
@@ -98,6 +100,8 @@ class Scene:
                     // stage 4: (GridCoord, GridResolution) -> (SquareCoord, SquareMaxResolution, SquareResolution)
                     int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
                     int SquareMaxResolution = GridResolution.x * GridResolution.y;
+                    int SquareResolution = int(ceil(pow(TextureResolution, lookups) * rescue_domain_percentage));
+
 /*
             // Test for a specific square number or texture pixel
             if(SquareCoord == 256) {
@@ -106,10 +110,11 @@ class Scene:
                 return;
             }
 */
+
                     // stage 5: (SquareCoord) -> Statuses from Texture
                     ivec3 icoord;             // WARNING: icoord needs z, y, x coordinates
                     uvec3 ucoord = uvec3(0);  // starts at texture line (0, 0)
-                    int SquareResolution = int(ceil(pow(TextureResolution, lookups) * rescue_domain_percentage));
+
                     
                     if(SquareCoord >= SquareResolution) {
                         // Square outside of rescue domain in almost white grey 
@@ -137,9 +142,11 @@ class Scene:
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
         self.prog['FragResolution'] = (1900, 1000)
-        self.prog['lookups'] = 3  # TODO: compute from the number of squares
+        self.prog['lookups'] = 2  # TODO: compute from the number of squares
+        self.prog['zoom'] = 1.1**10  # TODO: change the zoom level (exponent) dynamically
+        self.prog['vertical_scrolling'] = 0.005  # TODO: change the vertical scrolling dynamically with the mouse wheel in [0.0, zoom-1.0]
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
-        self.prog['square_size'] = 4
+        self.prog['square_size'] = 8
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
@@ -429,7 +436,7 @@ def texture(rescue):
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-    rescue = Rescue('../tests/example.log')
+    rescue = Rescue('../tests/Seagate1.mapfile')
     tex = texture(rescue)
     
     app = QtWidgets.QApplication(sys.argv)
