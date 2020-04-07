@@ -143,7 +143,8 @@ class Scene:
         self.tex.use()
         self.prog['FragResolution'] = (1900, 1000)
         self.prog['lookups'] = 2  # TODO: compute from the number of squares
-        self.prog['zoom_factor'] = 1.1**10  # TODO: change the zoom level (exponent) dynamically
+        self.prog['zoom_factor'] = 3.0
+        self.prog['vertical_scrolling'] = 0.0
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
         self.prog['square_size'] = 8
 
@@ -156,35 +157,12 @@ class Scene:
         self.vbo.write(data)
         self.vao.render(moderngl.TRIANGLES, vertices=len(data))
 
-    def zoom(self, zoom_factor):
-        self.prog['zoom_factor'] = zoom_factor
-
-    def scroll(self, vertical_scrolling):
-        self.prog['vertical_scrolling'] = vertical_scrolling
 
 vertices = np.array(
     # upper left triangle  bottom right triangle
     [ [-1.0, +1.0, -1.0,   +1.0, -1.0, +1.0],  # x
       [+1.0, +1.0, -1.0,   +1.0, -1.0, -1.0],  # y
     ]).T  # transpose for OpenGL
-
-
-class ZoomScrollTool:
-    def __init__(self, zoom_level=1, vertical_scroll=0.0):
-        self.zoom_level = zoom_level
-        self.vertical_scroll = vertical_scroll
-
-    def zoom(self, level):
-        self.zoom_level += level
-        if self.zoom_level < 1: self.zoom_level = 1
-
-    def scroll(self, vertical_scroll):
-        '''vertical scrolling in the range [0.0, zoom_factor - 1.0]'''
-        self.vertical_scroll += vertical_scroll
-        if self.vertical_scroll < 0.0: self.vertical_scroll = 0.0
-        if self.vertical_scroll > self.zoom_factor - 1.0: self.vertical_scroll = self.zoom_factor - 1.0
-
-    zoom_factor = property(lambda self: 1.05**self.zoom_level)
 
 
 class Widget(QtOpenGL.QGLWidget):
@@ -197,7 +175,6 @@ class Widget(QtOpenGL.QGLWidget):
         super(Widget, self).__init__(fmt, None)
         self.scene = None
         self.tex = tex
-        self.zoom_scroll_tool = ZoomScrollTool()
 
     def paintGL(self):
         self.ctx = moderngl.create_context()
@@ -220,12 +197,10 @@ class Widget(QtOpenGL.QGLWidget):
         #modifiers = QtGui.QApplication.keyboardModifiers()
         #if modifiers == QtCore.Qt.ControlModifier:
             # do your processing (for Ctrl+wheel to zoom)
-        self.zoom_scroll_tool.scroll(event.delta)
-        print(f'scroll change += {event.delta}')
-        print(f'vertical_scroll = {self.zoom_scroll_tool.vertical_scroll}')
-        self.scene.scroll(self.zoom_scroll_tool.vertical_scroll)
+        steps = event.angleDelta().y() / 8 / 15.0
+        v_pos = self.scene.prog['vertical_scrolling'].value - steps / 100.
+        self.scene.prog['vertical_scrolling'] = 0.0 if v_pos < 0.0 else self.scene.prog['zoom_factor'].value - 1.0 if v_pos > self.scene.prog['zoom_factor'].value - 1.0 else v_pos
         self.update()
-
 
 
 rescue_statuses = {
@@ -469,7 +444,7 @@ def texture(rescue):
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-    rescue = Rescue('../tests/Seagate1.mapfile')
+    rescue = Rescue('../tests/example.log')
     tex = texture(rescue)
     
     app = QtWidgets.QApplication(sys.argv)
