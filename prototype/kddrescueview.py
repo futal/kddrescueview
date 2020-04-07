@@ -142,7 +142,7 @@ class Scene:
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
         self.prog['FragResolution'] = (1900, 1000)
-        self.prog['lookups'] = 2  # TODO: compute from the number of squares
+        self.prog['lookups'] = 3  # TODO: compute from the number of squares
         self.prog['zoom_factor'] = 3.0
         self.prog['vertical_scrolling'] = 0.0
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
@@ -194,12 +194,22 @@ class Widget(QtOpenGL.QGLWidget):
         self.scene.plot(vertices)
 
     def wheelEvent(self, event):
-        #modifiers = QtGui.QApplication.keyboardModifiers()
-        #if modifiers == QtCore.Qt.ControlModifier:
-            # do your processing (for Ctrl+wheel to zoom)
         steps = event.angleDelta().y() / 8 / 15.0
-        v_pos = self.scene.prog['vertical_scrolling'].value - steps / 100.
-        self.scene.prog['vertical_scrolling'] = 0.0 if v_pos < 0.0 else self.scene.prog['zoom_factor'].value - 1.0 if v_pos > self.scene.prog['zoom_factor'].value - 1.0 else v_pos
+        if event.modifiers() == QtCore.Qt.ControlModifier:
+            # zoom
+            zoom_factor = self.scene.prog['zoom_factor'].value * (1.0 - steps / 50.)
+            zoom_factor = 1.0 if zoom_factor < 1.0 else zoom_factor
+            self.scene.prog['zoom_factor'] = zoom_factor
+            logging.info(f'zoom_factor = {zoom_factor}')
+            # TODO: correct vertical position to stay on the canvas
+        else:
+            # scroll
+            v_pos = self.scene.prog['vertical_scrolling'].value - steps / 50.
+            v_pos_max = self.scene.prog['zoom_factor'].value - 1.0
+            v_pos = 0.0 if v_pos < 0.0 else v_pos_max if v_pos > v_pos_max else v_pos
+            self.scene.prog['vertical_scrolling'] = v_pos
+            logging.info(f'vertical_scrolling = {v_pos}')
+        event.accept()
         self.update()
 
 
