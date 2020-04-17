@@ -49,8 +49,6 @@ class Scene:
                 uniform int pow2_tex_size;
                 uniform int pow2_zoom_level;
                 uniform ivec2 FragResolution;
-                uniform int lookups;
-                uniform float zoom_factor;
                 uniform float vertical_scrolling;
                 uniform float rescue_domain_percentage;
                 uniform int square_size;
@@ -90,9 +88,80 @@ class Scene:
                     ivec2 CanvasResolution = ivec2(FragResolution.x, GridResolution.y * square_size);
 
                     // stage 2: computes all coordinates
-                    ivec2 CanvasCoord = ivec2(gl_FragCoord.x, int(FragResolution.y * (1.0 + vertical_scrolling)) - int(gl_FragCoord.y));
+                    ivec2 FragCoord = ivec2(gl_FragCoord.x, FragResolution.y - gl_FragCoord.y);
+                    ivec2 CanvasCoord = ivec2(FragCoord.x, int(FragResolution.y * vertical_scrolling) + FragCoord.y);
                     ivec2 GridCoord = CanvasCoord / square_size;
                     int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
+
+                    // stage 3: scroll bar with mini-map
+                    if(FragCoord.x < 16) {
+                        // mini-map scroll bar
+                        int scrollbar_top = int(FragResolution.y * vertical_scrolling / float(CanvasResolution.y));
+                        int scrollbar_bottom = int(scrollbar_top + FragResolution.y * FragResolution.y / CanvasResolution.y);
+                        if(FragCoord.y > scrollbar_top && FragCoord.y < scrollbar_top + 3) {
+                            // scrollbar top
+                            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                            return;
+                        }
+                        if(FragCoord.y > scrollbar_bottom - 3 && FragCoord.y < scrollbar_bottom) {
+                            // scrollbar bottom
+                            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                            return;
+                        }
+                        if(FragCoord.y > scrollbar_top && FragCoord.y < scrollbar_bottom && FragCoord.x < 2) {
+                            // scrollbar left
+                            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                            return;
+                        }
+                        if(FragCoord.y > scrollbar_top && FragCoord.y < scrollbar_bottom && FragCoord.x > 13) {
+                            // scrollbar right
+                            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                            return;
+                        }
+                        // else mini-map background
+                            int h = FragResolution.y;
+                            int y = FragCoord.y;
+                            // we need at least h texture pixels:
+                            // 2**n * rescue_domain_percentage >= h
+                            // 2**n >= h/rescue_domain_percentage
+                            // n = ceil(log2(h/rescue_domain_percentage))
+                            // The number of pixels are actually a multiple of 8
+                            // n = ceil(n/8)*8
+                            int n = int(ceil(ceil(log2(h/rescue_domain_percentage))/8))*8;
+                            
+                            // So we have '2**n * rescue_domain_percentage' texture pixels and h scrollbar pixels
+                            // Each scrollbar pixel is represented by 2**n * rescue_domain_percentage / h texture pixels
+                            int texture_pixels_per_screen_pixel = int(ceil(pow(2, n) * rescue_domain_percentage / h));
+
+                            ivec3 icoord;             // NOTE: texture needs z, y, x coordinates
+                            uvec3 ucoord = uvec3(0);  // starts at texture line (0, 0)
+                            // screen coordinates are: y / h
+                            // texture coordinates are: y / h * 2**n + j
+                            // with j in range(texture_pixels_per_screen_pixel
+
+                            int status = 0;
+                            for(int j = 0; j < texture_pixels_per_screen_pixel; ++j) {
+                                int textureCoord = int(float(y) / float(h) * pow(2., n)) + j;
+                                for(int i = n; i >= 0; --i) {
+                                    icoord = ivec3(mod(textureCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
+                                    ucoord = texelFetch(tex, icoord, 0).xyz;
+                                }
+                                status |= int(ucoord.z);
+                            }
+                            // mini-map
+                            gl_FragColor = color(status);
+                            return;
+                    }
+                    
+                    // 0. We draw the scrolling cursor
+                    // 1. How many pixel vertically
+                    // 2. How many texels are needed (we need at least one pixel/texel)
+                    // 3. Reach the righ depth in the texture
+                    // 4. We will lookup at several float coord in the texture
+                    // 5. We OR the lookup results
+                    // draw status color for each line of the scroll bar (including the scroll cursor)
+                    // that is: for each scroll bar pixel line, select the domain interval and lookup in the texture
+                    
 
                     // stage 3: margins and grid bars
                     if(    CanvasCoord.x > CanvasResolution.x - mod(CanvasResolution.x, square_size)  // right margin as there is not enough space for full squares
@@ -129,8 +198,6 @@ class Scene:
 
                     // dummy use of unused uniforms
                     for(int i = 0; i < pow2_zoom_level; ++i) {}
-                    for(float i = 0.0; i < zoom_factor; i=i+1.0) {}
-                    for(int i = 0; i < lookups; ++i) {}
                     
                     // stage 6: Statuses from texture -> Square color
                     gl_FragColor = color(int(ucoord.z));
@@ -147,13 +214,11 @@ class Scene:
         self.tex = ctx.texture3d(size=(tex_size,)*3, components=3, data=tex_data, alignment=1, dtype='u1')
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
-        self.prog['FragResolution'] = (1900, 1000)
-        self.prog['lookups'] = 3  # TODO: compute from the number of squares
-        self.prog['zoom_factor'] = 3.0
+        self.prog['FragResolution'] = (512, 512)
         self.prog['vertical_scrolling'] = 0.0
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
-        self.prog['square_size'] = 8
-        self.prog['pow2_zoom_level'] = 21
+        self.prog['square_size'] = 16
+        self.prog['pow2_zoom_level'] = 15
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
@@ -191,8 +256,8 @@ class Widget(QtOpenGL.QGLWidget):
         self.paintGL = self.render
 
     def init(self):
-        self.resize(1900, 1000)
-        self.ctx.viewport = (0, 0, 1900, 1000)
+        self.resize(512, 512)
+        self.ctx.viewport = (0, 0, 512, 512)
         self.scene = Scene(self.ctx, self.tex)
 
     def render(self):
@@ -204,10 +269,15 @@ class Widget(QtOpenGL.QGLWidget):
         steps = event.angleDelta().y() / 8 / 15.0
         if event.modifiers() == QtCore.Qt.ControlModifier:
             # zoom
-            zoom_factor = self.scene.prog['zoom_factor'].value * (1.0 - steps / 50.)
-            zoom_factor = 1.0 if zoom_factor < 1.0 else zoom_factor
-            self.scene.prog['zoom_factor'] = zoom_factor
-            logging.info(f'zoom_factor = {zoom_factor}')
+##            zoom_factor = self.scene.prog['zoom_factor'].value * (1.0 - steps / 50.)
+##            zoom_factor = 1.0 if zoom_factor < 1.0 else zoom_factor
+##            self.scene.prog['zoom_factor'] = zoom_factor
+##            logging.info(f'zoom_factor = {zoom_factor}')
+            # TODO: correct vertical position to stay on the canvas
+            pow2_zoom_level = self.scene.prog['pow2_zoom_level'].value - int(steps)
+            pow2_zoom_level = 1 if pow2_zoom_level < 1 else pow2_zoom_level
+            logging.info(f'pow2_zoom_level = {pow2_zoom_level}')
+##            self.prog['pow2_zoom_level'] = pow2_zoom_level   
             # TODO: correct vertical position to stay on the canvas
         else:
             # scroll
