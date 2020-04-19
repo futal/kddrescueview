@@ -53,28 +53,29 @@ class Scene:
                 uniform float rescue_domain_percentage;
                 uniform int square_size;
                 uniform usampler3D tex;
-                int scroll_width = 16;
+                int scroll_width = square_size;
 
                 out vec4 gl_FragColor;
 
-                vec4 color(int status) {
+                vec4 color(uint status) {
                     // compute a color from a bitfield status
 
-                    if(status == 0) {
+                    if(status == 0u) {
+                        // light grey for unknown status
                         return vec4(0.75, 0.75, 0.75, 1.0);
-                        // light grey if status is unknown
                     }
-                    
-                    float nontried = float(status & 1); 
-                    float recovered = float(status & 2); 
-                    float nontrimmed = float(status & 4);
-                    float nonscraped = float(status & 8) * 1.25;  // multiply by 1.25 to get 10 factor as in the original
-                    float badsectors = float(status & 16) * 2.5;  // multiply by 2.5 to get 40 factor as in the original
+
+                    float nontried = float(status & 1u); 
+                    float recovered = float(status & 2u); 
+                    float nontrimmed = float(status & 4u);
+                    float nonscraped = float(status & 8u) * 1.25;  // multiply by 1.25 to get 10 factor as in the original
+                    float badsectors = float(status & 16u) * 2.5;  // multiply by 2.5 to get 40 factor as in the original
                     float colors = nontried + recovered + nontrimmed + nonscraped + badsectors; 
                     float red = (nontried * 64. + nontrimmed * 255. + nonscraped * 32. + badsectors * 255.) / colors;
                     float green = (nontried * 64. + nontrimmed * 224. + nonscraped * 32. + recovered * 255.) / colors;
                     float blue =  (nontried * 64. + nonscraped * 255.) / colors;
-                    return vec4(red/256., green/256., blue/256., 1.0);
+                    vec3 rgb = vec3(red, green, blue) / vec3(256.);
+                    return vec4(rgb, 1.);
                 }
 
                 
@@ -82,23 +83,24 @@ class Scene:
                     // stage 1: computes all resolutions
                     int TextureResolution = int(pow(2, pow2_tex_size));
                     float SquareMaxResolution = pow(2, pow2_zoom_level);
-                    int SquareResolution = int(ceil(SquareMaxResolution * rescue_domain_percentage));
+                    float SquareResolution = ceil(SquareMaxResolution * rescue_domain_percentage);
                     int GridColumns = FragResolution.x / square_size;
-                    int GridRows = int(ceil(float(SquareResolution) / float(GridColumns)));
+                    int GridRows = int(ceil(SquareResolution / float(GridColumns)));
                     ivec2 GridResolution = ivec2(GridColumns, GridRows);
                     ivec2 CanvasResolution = ivec2(FragResolution.x, GridResolution.y * square_size);
 
                     // stage 2: computes all coordinates
                     ivec2 FragCoord = ivec2(gl_FragCoord.x, FragResolution.y - gl_FragCoord.y);
-                    ivec2 CanvasCoord = ivec2(FragCoord.x, FragResolution.y * vertical_scrolling + FragCoord.y);
+                    ivec2 CanvasCoord = ivec2(FragCoord.x, vertical_scrolling + FragCoord.y);
                     ivec2 GridCoord = CanvasCoord / square_size;
                     int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
 
                     // stage 3: scroll bar with mini-map
                     if(FragCoord.x < scroll_width) {
                         // mini-map scroll bar
-                        int scrollbar_top = int(FragResolution.y * vertical_scrolling / CanvasResolution.y);
+                        int scrollbar_top = int(vertical_scrolling);
                         int scrollbar_bottom = int(scrollbar_top + FragResolution.y * FragResolution.y / CanvasResolution.y);
+
                         if(FragCoord.y > scrollbar_top && FragCoord.y < scrollbar_top + 3) {
                             // scrollbar top 3 pixels high
                             gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
@@ -114,7 +116,7 @@ class Scene:
                             gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
                             return;
                         }
-                        if(FragCoord.y > scrollbar_top && FragCoord.y < scrollbar_bottom && FragCoord.x > 13) {
+                        if(FragCoord.y > scrollbar_top && FragCoord.y < scrollbar_bottom && FragCoord.x > scroll_width - 3) {
                             // scrollbar right 2 pixels wide
                             gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
                             return;
@@ -140,18 +142,18 @@ class Scene:
                             // texture coordinates are: y / h * 2**n + j
                             // with j in range(texture_pixels_per_screen_pixel
 
-                            int status = 0;
+                            uint status = 0u;
                             for(int j = 0; j < texture_pixels_per_screen_pixel; ++j) {
                                 int textureCoord = int(float(y) / float(h) * pow(2., n)) + j;
                                 for(int i = n; i >= 0; --i) {
                                     icoord = ivec3(mod(textureCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
                                     ucoord = texelFetch(tex, icoord, 0).xyz;
                                 }
-                                status |= int(ucoord.z);
+                                status |= ucoord.z;
                             }
                             // mini-map
-                            //gl_FragColor = color(status);
-                            //return;
+                            gl_FragColor = color(status);
+                            return;
                     }
                     
                     // 0. We draw the scrolling cursor
@@ -173,16 +175,16 @@ class Scene:
                         gl_FragColor = vec4(1.);
                         return;
                     }
-/*
+
                     // stage 3bis: test for a specific square number or texture pixel
-                    if(SquareCoord == 0) {
+                    if(SquareCoord == int(SquareResolution)) {
                         gl_FragColor = vec4(1.0, 0.5, 0.5, 1.0);  // pink
-                        //gl_FragColor = color(int(texelFetch(tex, ivec3(94, 63, 0), 0).z));
+                        //gl_FragColor = color(texelFetch(tex, ivec3(94, 63, 0), 0).z);
                         return;
                     }
-*/
+
                     // stage 4: squares outside of rescue domain in almost grey 
-                    if(SquareCoord >= SquareResolution) {
+                    if(SquareCoord >= int(SquareResolution)) {
                         gl_FragColor = vec4(0.95);
                         return;
                     }
@@ -196,12 +198,9 @@ class Scene:
                         icoord = ivec3(mod(SquareCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
                         ucoord = texelFetch(tex, icoord, 0).xyz;
                     }   
-
-                    // dummy use of unused uniforms
-                    for(int i = 0; i < pow2_zoom_level; ++i) {}
                     
                     // stage 6: Statuses from texture -> Square color
-                    gl_FragColor = color(int(ucoord.z));
+                    gl_FragColor = color(ucoord.z);
                 }
             ''',
         )
@@ -218,8 +217,8 @@ class Scene:
         self.prog['FragResolution'] = (512, 512)
         self.prog['vertical_scrolling'] = 0.0
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
-        self.prog['square_size'] = 8
-        self.prog['pow2_zoom_level'] = 23
+        self.prog['square_size'] = 16
+        self.prog['pow2_zoom_level'] = 15
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
@@ -282,7 +281,7 @@ class Widget(QtOpenGL.QGLWidget):
             # TODO: correct vertical position to stay on the canvas
         else:
             # scroll
-            v_pos = self.scene.prog['vertical_scrolling'].value - steps / 10.
+            v_pos = self.scene.prog['vertical_scrolling'].value - steps * 5  # scroll by 5 pixels
             #v_pos_max = self.scene.prog['zoom_factor'].value - 1.0
             #v_pos = 0.0 if v_pos < 0.0 else v_pos_max if v_pos > v_pos_max else v_pos
             v_pos = 0.0 if v_pos < 0.0 else v_pos
@@ -528,6 +527,7 @@ def texture(rescue):
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
     rescue = Rescue('../tests/example.log')
+    #rescue = Rescue('../tests/Seagate1.mapfile')
     tex = texture(rescue)
     
     app = QtWidgets.QApplication(sys.argv)
