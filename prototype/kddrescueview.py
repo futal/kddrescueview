@@ -44,7 +44,7 @@ class Scene:
                 }
             ''',
             fragment_shader='''
-                #version 330
+                #version 400
 
                 uniform int pow2_tex_size;
                 uniform int pow2_zoom_level;
@@ -58,24 +58,20 @@ class Scene:
                 out vec4 gl_FragColor;
 
                 vec4 color(uint status) {
-                    // compute a color from a bitfield status
+                    // light grey for unknown status
+                    if(status == 0u) return vec4(0.75, 0.75, 0.75, 1.0);
 
-                    if(status == 0u) {
-                        // light grey for unknown status
-                        return vec4(0.75, 0.75, 0.75, 1.0);
-                    }
-
+                    // compute the square color from a bitfield status
                     float nontried = float(status & 1u); 
                     float recovered = float(status & 2u); 
                     float nontrimmed = float(status & 4u);
                     float nonscraped = float(status & 8u) * 1.25;  // multiply by 1.25 to get 10 factor as in the original
                     float badsectors = float(status & 16u) * 2.5;  // multiply by 2.5 to get 40 factor as in the original
                     float colors = nontried + recovered + nontrimmed + nonscraped + badsectors; 
-                    float red = (nontried * 64. + nontrimmed * 255. + nonscraped * 32. + badsectors * 255.) / colors;
-                    float green = (nontried * 64. + nontrimmed * 224. + nonscraped * 32. + recovered * 255.) / colors;
-                    float blue =  (nontried * 64. + nonscraped * 255.) / colors;
-                    vec3 rgb = vec3(red, green, blue) / vec3(256.);
-                    return vec4(rgb, 1.);
+                    float red = (nontried * 64./255. + nontrimmed + nonscraped * 32./255. + badsectors) / colors;
+                    float green = (nontried * 64./255. + nontrimmed * 224./255. + nonscraped * 32./255. + recovered) / colors;
+                    float blue =  (nontried * 64./255. + nonscraped) / colors;
+                    return vec4(red, green, blue, 1.);
                 }
 
                 
@@ -121,39 +117,23 @@ class Scene:
                             gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
                             return;
                         }
+
                         // else mini-map background
-                            int h = FragResolution.y;
-                            int y = FragCoord.y;
-                            // we need at least h texture pixels:
-                            // 2**n * rescue_domain_percentage >= h
-                            // 2**n >= h/rescue_domain_percentage
-                            // n = ceil(log2(h/rescue_domain_percentage))
-                            // The number of pixels are actually a multiple of 8
-                            // n = ceil(n/8)*8
-                            int n = int(ceil(ceil(log2(h/rescue_domain_percentage))/8))*8;
-                            
-                            // So we have '2**n * rescue_domain_percentage' texture pixels and h scrollbar pixels
-                            // Each scrollbar pixel is represented by 2**n * rescue_domain_percentage / h texture pixels
-                            int texture_pixels_per_screen_pixel = int(ceil(pow(2, n) * rescue_domain_percentage / h));
+                        // We need indirections to have "2**n * rescue_domain_percentage texture pixels >= FragResolution.y" with n a multiple of pow2_tex_size
+                        // n = int(ceil(ceil(log2(h/rescue_domain_percentage))/pow2_tex_size))*pow2_tex_size
+                        
+                        int indirections = 1;  // TODO: compute indirections from n
+                        int PixelCoord = int(float(FragCoord.y) / float(FragResolution.y) * pow(TextureResolution, indirections+1) * rescue_domain_percentage);
+                        ivec3 icoord;             // NOTE: texture needs z, y, x coordinates
+                        uvec3 ucoord = uvec3(0);  // starts at texture line (0, 0)
 
-                            ivec3 icoord;             // NOTE: texture needs z, y, x coordinates
-                            uvec3 ucoord = uvec3(0);  // starts at texture line (0, 0)
-                            // screen coordinates are: y / h
-                            // texture coordinates are: y / h * 2**n + j
-                            // with j in range(texture_pixels_per_screen_pixel
-
-                            uint status = 0u;
-                            for(int j = 0; j < texture_pixels_per_screen_pixel; ++j) {
-                                int textureCoord = int(float(y) / float(h) * pow(2., n)) + j;
-                                for(int i = n; i >= 0; --i) {
-                                    icoord = ivec3(mod(textureCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
-                                    ucoord = texelFetch(tex, icoord, 0).xyz;
-                                }
-                                status |= ucoord.z;
-                            }
-                            // mini-map
-                            gl_FragColor = color(status);
-                            return;
+                        for(int i = indirections; i >= 0; --i) {
+                            icoord = ivec3(mod(PixelCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
+                            ucoord = texelFetch(tex, icoord, 0).xyz;
+                        }
+                        // TODO: do not take the first pixel but multisample from the texture
+                        gl_FragColor = color(ucoord.z);
+                        return;
                     }
                     
                     // 0. We draw the scrolling cursor
@@ -197,7 +177,7 @@ class Scene:
                     for(int i = indirections; i >= 0; --i) {
                         icoord = ivec3(mod(SquareCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
                         ucoord = texelFetch(tex, icoord, 0).xyz;
-                    }   
+                    }
                     
                     // stage 6: Statuses from texture -> Square color
                     gl_FragColor = color(ucoord.z);
@@ -521,6 +501,10 @@ def texture(rescue):
 
     first_line = Block(rescue.start, rescue.size, '')
     populate_line(first_line)
+
+    # print the meaningful part of the first texture line for debugging
+    print(tex[0][0][:int(np.ceil(tex_size * rescue_domain_percentage))])
+
     return (tex, pow2_tex_size, rescue_domain_percentage)
 
 
