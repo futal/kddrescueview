@@ -44,7 +44,7 @@ class Scene:
                 }
             ''',
             fragment_shader='''
-                #version 400
+                #version 330
 
                 uniform int pow2_tex_size;
                 uniform int pow2_zoom_level;
@@ -77,8 +77,8 @@ class Scene:
                 
                 void main() {
                     // stage 1: computes all resolutions
-                    int TextureResolution = int(pow(2, pow2_tex_size));
-                    float SquareMaxResolution = pow(2, pow2_zoom_level);
+                    int TextureResolution = 1 << pow2_tex_size;  // = 2**pow2_tex_size
+                    int SquareMaxResolution = 1 << pow2_zoom_level;  // = 2**pow2_zoom_level
                     float SquareResolution = ceil(SquareMaxResolution * rescue_domain_percentage);
                     int GridColumns = FragResolution.x / square_size;
                     int GridRows = int(ceil(SquareResolution / float(GridColumns)));
@@ -123,12 +123,12 @@ class Scene:
                         // n = int(ceil(ceil(log2(h/rescue_domain_percentage))/pow2_tex_size))*pow2_tex_size
                         
                         int indirections = 1;  // TODO: compute indirections from n
-                        int PixelCoord = int(float(FragCoord.y) / float(FragResolution.y) * pow(TextureResolution, indirections+1) * rescue_domain_percentage);
+                        int PixelCoord = int(float(FragCoord.y) / float(FragResolution.y) * (1 << (pow2_tex_size * (indirections+1))) * rescue_domain_percentage);
                         ivec3 icoord;             // NOTE: texture needs z, y, x coordinates
                         uvec3 ucoord = uvec3(0);  // starts at texture line (0, 0)
 
                         for(int i = indirections; i >= 0; --i) {
-                            icoord = ivec3(mod(PixelCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
+                            icoord = ivec3(PixelCoord/(1 << (pow2_tex_size * i)) % TextureResolution, ucoord.y, ucoord.x);
                             ucoord = texelFetch(tex, icoord, 0).xyz;
                         }
                         // TODO: do not take the first pixel but multisample from the texture
@@ -155,16 +155,16 @@ class Scene:
                         gl_FragColor = vec4(1.);
                         return;
                     }
-
+/*
                     // stage 3bis: test for a specific square number or texture pixel
-                    if(SquareCoord == int(SquareResolution)) {
+                    if(SquareCoord == SquareResolution) {
                         gl_FragColor = vec4(1.0, 0.5, 0.5, 1.0);  // pink
                         //gl_FragColor = color(texelFetch(tex, ivec3(94, 63, 0), 0).z);
                         return;
                     }
-
+*/
                     // stage 4: squares outside of rescue domain in almost grey 
-                    if(SquareCoord >= int(SquareResolution)) {
+                    if(SquareCoord >= SquareResolution) {
                         gl_FragColor = vec4(0.95);
                         return;
                     }
@@ -175,7 +175,7 @@ class Scene:
                     int indirections = pow2_zoom_level / pow2_tex_size;
 
                     for(int i = indirections; i >= 0; --i) {
-                        icoord = ivec3(mod(SquareCoord/pow(TextureResolution, i), TextureResolution), ucoord.y, ucoord.x);
+                        icoord = ivec3(SquareCoord/(1 << (pow2_tex_size * i)) % TextureResolution, ucoord.y, ucoord.x);
                         ucoord = texelFetch(tex, icoord, 0).xyz;
                     }
                     
