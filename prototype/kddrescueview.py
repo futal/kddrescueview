@@ -79,7 +79,8 @@ class Scene:
                     // stage 1: computes all resolutions
                     int TextureResolution = 1 << pow2_tex_size;  // = 2**pow2_tex_size
                     int SquareMaxResolution = 1 << pow2_zoom_level;  // = 2**pow2_zoom_level
-                    float SquareResolution = ceil(SquareMaxResolution * rescue_domain_percentage);
+                    //float SquareResolution = ceil(SquareMaxResolution * rescue_domain_percentage);
+                    int SquareResolution = SquareMaxResolution;
                     int GridColumns = FragResolution.x / square_size;
                     int GridRows = int(ceil(SquareResolution / float(GridColumns)));
                     ivec2 GridResolution = ivec2(GridColumns, GridRows);
@@ -90,7 +91,7 @@ class Scene:
                     ivec2 CanvasCoord = ivec2(FragCoord.x, vertical_scrolling + FragCoord.y);
                     ivec2 GridCoord = CanvasCoord / square_size;
                     int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
-
+/*
                     // stage 3: scroll bar with mini-map
                     if(FragCoord.x < scroll_width) {
                         // mini-map scroll bar
@@ -144,7 +145,8 @@ class Scene:
                     // 5. We OR the lookup results
                     // draw status color for each line of the scroll bar (including the scroll cursor)
                     // that is: for each scroll bar pixel line, select the domain interval and lookup in the texture
-                    
+*/
+
 
                     // stage 3: margins and grid bars
                     if(    CanvasCoord.x > CanvasResolution.x - mod(CanvasResolution.x, square_size)  // right margin as there is not enough space for full squares
@@ -173,14 +175,29 @@ class Scene:
                     ivec3 icoord;             // NOTE: texture needs z, y, x coordinates
                     uvec3 ucoord = uvec3(0);  // starts at texture line (0, 0)
                     int indirections = pow2_zoom_level / pow2_tex_size;
+                    int pow2_pixel_range = pow2_tex_size - pow2_zoom_level % pow2_tex_size;
+                    int pixel_range = 1 << pow2_pixel_range;
+                    int PixelCoord = SquareCoord * pixel_range;
+                    uint statuses = 0u;
 
                     for(int i = indirections; i >= 0; --i) {
-                        icoord = ivec3(SquareCoord/(1 << (pow2_tex_size * i)) % TextureResolution, ucoord.y, ucoord.x);
-                        ucoord = texelFetch(tex, icoord, 0).xyz;
+                        if(i != 0) {
+                            icoord = ivec3(PixelCoord/(1 << (pow2_tex_size * i)) % TextureResolution, ucoord.y, ucoord.x);
+                            ucoord = texelFetch(tex, icoord, 0).xyz;
+                        } else {
+                            for(int j = 0; j < pixel_range; ++j) {
+                                icoord = ivec3((PixelCoord+j)/(1 << (pow2_tex_size * i)) % TextureResolution, ucoord.y, ucoord.x);
+                                statuses |= texelFetch(tex, icoord, 0).z;
+                            }
+                        }
                     }
+
+                    // dummy use of uniforms
+                    for(float i = 0.0; i < vertical_scrolling; ++i) { }
+                    for(float i = 0.0; i < rescue_domain_percentage; ++i) { }
                     
                     // stage 6: Statuses from texture -> Square color
-                    gl_FragColor = color(ucoord.z);
+                    gl_FragColor = color(statuses);
                 }
             ''',
         )
@@ -197,8 +214,8 @@ class Scene:
         self.prog['FragResolution'] = (512, 512)
         self.prog['vertical_scrolling'] = 0.0
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
-        self.prog['square_size'] = 16
-        self.prog['pow2_zoom_level'] = 15
+        self.prog['square_size'] = 8
+        self.prog['pow2_zoom_level'] = 16
 
     def clear(self, color=(0, 0, 0, 0)):
         self.ctx.clear(*color)
@@ -257,7 +274,7 @@ class Widget(QtOpenGL.QGLWidget):
             pow2_zoom_level = self.scene.prog['pow2_zoom_level'].value - int(steps)
             pow2_zoom_level = 1 if pow2_zoom_level < 1 else 31 if pow2_zoom_level > 31 else pow2_zoom_level
             logging.info(f'pow2_zoom_level = {pow2_zoom_level}')
-##            self.prog['pow2_zoom_level'] = pow2_zoom_level   
+            self.prog['pow2_zoom_level'] = int(pow2_zoom_level)   
             # TODO: correct vertical position to stay on the canvas
         else:
             # scroll
