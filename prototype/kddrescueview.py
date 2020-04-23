@@ -29,6 +29,10 @@ from PyQt5 import QtWidgets, QtCore, QtOpenGL
 import moderngl
 from collections import namedtuple, defaultdict
 
+# TODO: verify that left bit shifts do not exceed the number of significant bits
+# giving undefined result https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.3.30.pdf#page=64 
+# TODO: change int to uint if necessary to have one more significant bit
+#
 
 class Scene:
     def __init__(self, ctx, tex, reserve='16MB'):
@@ -49,7 +53,7 @@ class Scene:
                 uniform int pow2_tex_size;
                 uniform int pow2_zoom_level;
                 uniform ivec2 FragResolution;
-                uniform float vertical_scrolling;
+                uniform int vertical_scrolling;
                 uniform float rescue_domain_percentage;
                 uniform int square_size;
                 uniform usampler3D tex;
@@ -95,7 +99,7 @@ class Scene:
                     // stage 3: scroll bar with mini-map
                     if(FragCoord.x < scroll_width) {
                         // mini-map scroll bar
-                        int scrollbar_top = int(vertical_scrolling);
+                        int scrollbar_top = vertical_scrolling;
                         int scrollbar_bottom = int(scrollbar_top + FragResolution.y * FragResolution.y / CanvasResolution.y);
 
                         if(FragCoord.y > scrollbar_top && FragCoord.y < scrollbar_top + 3) {
@@ -193,7 +197,7 @@ class Scene:
                     }
 
                     // dummy use of uniforms
-                    for(float i = 0.0; i < vertical_scrolling; ++i) { }
+                    for(int i = 0; i < vertical_scrolling; ++i) { }
                     for(float i = 0.0; i < rescue_domain_percentage; ++i) { }
                     
                     // stage 6: Statuses from texture -> Square color
@@ -212,7 +216,7 @@ class Scene:
         self.tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.tex.use()
         self.prog['FragResolution'] = (512, 512)
-        self.prog['vertical_scrolling'] = 0.0
+        self.prog['vertical_scrolling'] = 0
         self.prog['rescue_domain_percentage'] = rescue_domain_percentage
         self.prog['square_size'] = 8
         self.prog['pow2_zoom_level'] = 16
@@ -263,25 +267,17 @@ class Widget(QtOpenGL.QGLWidget):
         self.scene.plot(vertices)
 
     def wheelEvent(self, event):
-        steps = event.angleDelta().y() / 8 / 15.0
+        steps = int(event.angleDelta().y() / 8 / 15.0)
         if event.modifiers() == QtCore.Qt.ControlModifier:
-            # zoom
-##            zoom_factor = self.scene.prog['zoom_factor'].value * (1.0 - steps / 50.)
-##            zoom_factor = 1.0 if zoom_factor < 1.0 else zoom_factor
-##            self.scene.prog['zoom_factor'] = zoom_factor
-##            logging.info(f'zoom_factor = {zoom_factor}')
-            # TODO: correct vertical position to stay on the canvas
-            pow2_zoom_level = self.scene.prog['pow2_zoom_level'].value - int(steps)
+            pow2_zoom_level = self.scene.prog['pow2_zoom_level'].value - steps
             pow2_zoom_level = 1 if pow2_zoom_level < 1 else 31 if pow2_zoom_level > 31 else pow2_zoom_level
             logging.info(f'pow2_zoom_level = {pow2_zoom_level}')
-            self.prog['pow2_zoom_level'] = int(pow2_zoom_level)   
+            self.scene.prog['pow2_zoom_level'] = pow2_zoom_level
             # TODO: correct vertical position to stay on the canvas
         else:
-            # scroll
-            v_pos = self.scene.prog['vertical_scrolling'].value - steps * 5  # scroll by 5 pixels
-            #v_pos_max = self.scene.prog['zoom_factor'].value - 1.0
-            #v_pos = 0.0 if v_pos < 0.0 else v_pos_max if v_pos > v_pos_max else v_pos
-            v_pos = 0.0 if v_pos < 0.0 else v_pos
+            pixels_by_step = 5
+            v_pos = self.scene.prog['vertical_scrolling'].value - steps * pixels_by_step
+            v_pos = 0 if v_pos < 0 else v_pos
             self.scene.prog['vertical_scrolling'] = v_pos
             logging.info(f'vertical_scrolling = {v_pos}')
         event.accept()
