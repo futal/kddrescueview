@@ -32,7 +32,10 @@ from collections import namedtuple, defaultdict
 # TODO: verify that left bit shifts do not exceed the number of significant bits
 # giving undefined result https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.3.30.pdf#page=64 
 # TODO: change int to uint if necessary to have one more significant bit
-#
+# TODO: define base status colors at the beginning of the fragment shader
+# TODO: adjust zoom_level and vertical_scroll coefficients for smooth and continuous
+# scrolling while staying within the canvas and within texture depth
+
 
 class Scene:
     def __init__(self, ctx, tex, reserve='16MB'):
@@ -81,10 +84,9 @@ class Scene:
                 
                 void main() {
                     // stage 1: computes all resolutions
-                    int TextureResolution = 1 << pow2_tex_size;  // = 2**pow2_tex_size
-                    int SquareMaxResolution = 1 << pow2_zoom_level;  // = 2**pow2_zoom_level
-                    //float SquareResolution = ceil(SquareMaxResolution * rescue_domain_percentage);
-                    int SquareResolution = SquareMaxResolution;
+                    int TextureResolution = 1 << pow2_tex_size;       // = 2**pow2_tex_size
+                    int SquareMaxResolution = 1 << pow2_zoom_level;   // = 2**pow2_zoom_level
+                    int SquareResolution = SquareMaxResolution;       // TODO: limit canvas to ceil(SquareMaxResolution * rescue_domain_percentage)
                     int GridColumns = FragResolution.x / square_size;
                     int GridRows = int(ceil(SquareResolution / float(GridColumns)));
                     ivec2 GridResolution = ivec2(GridColumns, GridRows);
@@ -275,7 +277,7 @@ class Widget(QtOpenGL.QGLWidget):
             self.scene.prog['pow2_zoom_level'] = pow2_zoom_level
             # TODO: correct vertical position to stay on the canvas
         else:
-            pixels_by_step = 5
+            pixels_by_step = 5 * self.scene.prog['pow2_zoom_level'].value
             v_pos = self.scene.prog['vertical_scrolling'].value - steps * pixels_by_step
             v_pos = 0 if v_pos < 0 else v_pos
             self.scene.prog['vertical_scrolling'] = v_pos
