@@ -60,7 +60,7 @@ class Scene:
                 uniform float rescue_domain_percentage;
                 uniform int square_size;
                 uniform usampler3D tex;
-                int scroll_width = square_size;
+                int scroll_width = 2 * square_size;
 
                 out vec4 gl_FragColor;
 
@@ -97,12 +97,13 @@ class Scene:
                     ivec2 CanvasCoord = ivec2(FragCoord.x, vertical_scrolling + FragCoord.y);
                     ivec2 GridCoord = CanvasCoord / square_size;
                     int SquareCoord = GridCoord.y * GridResolution.x + GridCoord.x;
-/*
+
                     // stage 3: scroll bar with mini-map
                     if(FragCoord.x < scroll_width) {
                         // mini-map scroll bar
-                        int scrollbar_top = vertical_scrolling;
-                        int scrollbar_bottom = int(scrollbar_top + FragResolution.y * FragResolution.y / CanvasResolution.y);
+                        int scrollbar_top = int(vertical_scrolling * FragResolution.y / CanvasResolution.y / rescue_domain_percentage);
+                        int scrollbar_height = int(FragResolution.y * FragResolution.y / CanvasResolution.y / rescue_domain_percentage);
+                        int scrollbar_bottom = scrollbar_top + scrollbar_height;
 
                         if(FragCoord.y > scrollbar_top && FragCoord.y < scrollbar_top + 3) {
                             // scrollbar top 3 pixels high
@@ -126,32 +127,42 @@ class Scene:
                         }
 
                         // else mini-map background
-                        // We need indirections to have "2**n * rescue_domain_percentage texture pixels >= FragResolution.y" with n a multiple of pow2_tex_size
-                        // n = int(ceil(ceil(log2(h/rescue_domain_percentage))/pow2_tex_size))*pow2_tex_size
-                        
-                        int indirections = 1;  // TODO: compute indirections from n
-                        int PixelCoord = int(float(FragCoord.y) / float(FragResolution.y) * (1 << (pow2_tex_size * (indirections+1))) * rescue_domain_percentage);
-                        ivec3 icoord;             // NOTE: texture needs z, y, x coordinates
-                        uvec3 ucoord = uvec3(0);  // starts at texture line (0, 0)
 
-                        for(int i = indirections; i >= 0; --i) {
-                            icoord = ivec3(PixelCoord/(1 << (pow2_tex_size * i)) % TextureResolution, ucoord.y, ucoord.x);
-                            ucoord = texelFetch(tex, icoord, 0).xyz;
+                        // scroll line coordinate (top-down): FragCoord.y
+                        // scroll lines: FragResolution.y
+
+                        // texture pixels: 2**pow2_tex_pixels * rescue_domain_percentage
+                        // with: 2**pow2_tex_pixels = 2**(pow2_tex_size * depth) >= FragResolution.y / rescue_domain_percentage
+                        // in order to have more than one texture pixel per scroll line
+                        int pow2_tex_pixels = int(ceil(log2(float(FragResolution.y/rescue_domain_percentage))/pow2_tex_size) * pow2_tex_size);
+                        int pow2_zoom_scroll = int(ceil(log2(float(FragResolution.y/rescue_domain_percentage))));
+                        int tex_pixels = 1 << pow2_tex_pixels;
+
+                        ivec3 icoord_scroll;             // NOTE: texture needs z, y, x coordinates
+                        uvec3 ucoord_scroll = uvec3(0);  // starts at texture line (0, 0)
+
+                        // texture range:
+                        int pixel_range_scroll = int(ceil(float(tex_pixels) / float(FragResolution.y)));
+                        int indirections_scroll = pow2_zoom_scroll / pow2_tex_size;
+                        // texture coordinate:
+                        int PixelCoord_scroll;
+                        uint statuses_scroll = 0u;
+                        for(int j = 0; j < pixel_range_scroll; ++j) {
+                            PixelCoord_scroll = j + int(float(FragCoord.y) / float(FragResolution.y) * float(tex_pixels) * rescue_domain_percentage);
+                            for(int i = indirections_scroll; i >= 0; --i) {
+                                if(i != 0) {
+                                    icoord_scroll = ivec3(PixelCoord_scroll/(1 << (pow2_tex_size * i)) % TextureResolution, ucoord_scroll.y, ucoord_scroll.x);
+                                    ucoord_scroll = texelFetch(tex, icoord_scroll, 0).xyz;
+                                } else {
+                                    icoord_scroll = ivec3(PixelCoord_scroll/(1 << (pow2_tex_size * i)) % TextureResolution, ucoord_scroll.y, ucoord_scroll.x);
+                                    statuses_scroll |= texelFetch(tex, icoord_scroll, 0).z;
+                                }
+                            }
                         }
-                        // TODO: do not take the first pixel but multisample from the texture
-                        gl_FragColor = color(ucoord.z);
+
+                        gl_FragColor = color(statuses_scroll);
                         return;
                     }
-                    
-                    // 0. We draw the scrolling cursor
-                    // 1. How many pixel vertically
-                    // 2. How many texels are needed (we need at least one pixel/texel)
-                    // 3. Reach the righ depth in the texture
-                    // 4. We will lookup at several float coord in the texture
-                    // 5. We OR the lookup results
-                    // draw status color for each line of the scroll bar (including the scroll cursor)
-                    // that is: for each scroll bar pixel line, select the domain interval and lookup in the texture
-*/
 
 
                     // stage 3: margins and grid bars
@@ -163,14 +174,14 @@ class Scene:
                         gl_FragColor = vec4(1.);
                         return;
                     }
-/*
+
                     // stage 3bis: test for a specific square number or texture pixel
-                    if(SquareCoord == SquareResolution) {
-                        gl_FragColor = vec4(1.0, 0.5, 0.5, 1.0);  // pink
+                    if(SquareCoord == 102) {
+                        gl_FragColor = vec4(1., 105./255., 180./255., 1.0);  // pink
                         //gl_FragColor = color(texelFetch(tex, ivec3(94, 63, 0), 0).z);
                         return;
                     }
-*/
+
                     // stage 4: squares outside of rescue domain in almost grey 
                     if(SquareCoord >= SquareResolution) {
                         gl_FragColor = vec4(0.95);
@@ -519,7 +530,7 @@ def texture(rescue):
 
     # print the meaningful part of the first texture line for debugging
     print(tex[0][0][:int(np.ceil(tex_size * rescue_domain_percentage))])
-
+    print(tex[0][68][:8])
     return (tex, pow2_tex_size, rescue_domain_percentage)
 
 
