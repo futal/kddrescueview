@@ -1,6 +1,6 @@
 /*
  * Kddrescueview - A KPart application to visualise GNU ddrescue mapfiles
- * Copyright 2018  Adrien Cordonnier <adrien.cordonnier@gmail.com>
+ * Copyright 2020  Adrien Cordonnier <adrien.cordonnier@gmail.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -43,9 +43,9 @@ int main(int argc, char **argv)
         QStringLiteral("0.1"),
         i18n("KPart viewer for GNU ddrescue map files"),
         KAboutLicense::GPL,
-        i18n("Copyright 2018 Adrien Cordonnier"));
+        i18n("Copyright 2020 Adrien Cordonnier"));
     aboutData.addAuthor(i18n("Adrien Cordonnier"), i18n("Author"), QStringLiteral("adrien.cordonnier@gmail.com"));
-    aboutData.addAuthor(i18n("Martin Bittermann"), i18n("Inspirator for the excellent ddrescueview written in Object Pascal"), QStringLiteral(""));
+    aboutData.addAuthor(i18n("Martin Bittermann"), i18n("Inspirator with the excellent ddrescueview written in Object Pascal"), QStringLiteral(""));
     aboutData.setOrganizationDomain("kde.org");
     aboutData.setDesktopFileName(QStringLiteral("org.kde.kddrescueview"));
 
@@ -53,8 +53,6 @@ int main(int argc, char **argv)
     app.setWindowIcon(QIcon::fromTheme(QStringLiteral("kddrescueview")));
 
     QCommandLineParser parser;
-    parser.addHelpOption();
-    parser.addVersionOption();
     aboutData.setupCommandLine(&parser);
     parser.addPositionalArgument(QStringLiteral("urls"), i18n("GNU ddrescue map file(s) to load."), QStringLiteral("[urls...]"));
 
