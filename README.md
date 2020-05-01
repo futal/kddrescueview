@@ -63,12 +63,17 @@ window.
 
 ### On Unix:
 
+If you use KDE Neon Developer Edition, all tools and libraries are readily available in the base system.
+You may have to install library headers and compilers with other distributions. You can add argument 
+'-G Ninja' to cmake and replace make by ninja for development (this is also the default build method
+if you build the project with Kdevelop).
+
     cd kddrescueview
     mkdir build
     cd build
     cmake -DCMAKE_INSTALL_PREFIX=$PROJECTINSTALLDIR -DCMAKE_BUILD_TYPE=Debug ..   <- do not forget the ..
     make
-    make install or su -c 'make install
+    make install or su -c 'make install'
 
 where $PROJECTINSTALLDIR points to your installation prefix.
 
