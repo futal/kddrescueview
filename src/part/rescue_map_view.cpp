@@ -35,8 +35,10 @@ RescueMapView::RescueMapView(QWidget *parent)
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     verticalHeader()->setSectionResizeMode(QHeaderView::Fixed); 
+    verticalHeader()->setMinimumSectionSize(4);
     verticalHeader()->setDefaultSectionSize(m_square_size); 
     horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed); 
+    horizontalHeader()->setMinimumSectionSize(4);
     horizontalHeader()->setDefaultSectionSize(m_square_size);
     setStyleSheet(QString("QTableView { border: none; background: %1; }").arg(palette().color(QPalette::Window).name())); 
 }
