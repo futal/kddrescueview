@@ -25,7 +25,7 @@ import sys
 import logging
 import itertools
 import numpy as np
-from PyQt5 import QtWidgets, QtCore, QtOpenGL
+from PyQt5 import QtWidgets, QtCore, QtGui
 import moderngl
 from collections import namedtuple, defaultdict
 
@@ -241,33 +241,25 @@ vertices = np.array(
     ]).T  # transpose for OpenGL
 
 
-class Widget(QtOpenGL.QGLWidget):
+class Widget(QtWidgets.QOpenGLWidget):
     def __init__(self, tex):
-        fmt = QtOpenGL.QGLFormat()
-        fmt.setVersion(3, 3)
-        fmt.setProfile(QtOpenGL.QGLFormat.CoreProfile)
-        fmt.setSampleBuffers(True)
-        self.timer = QtCore.QElapsedTimer()        
-        super(Widget, self).__init__(fmt, None)
+        super(Widget, self).__init__()
         self.scene = None
         self.tex = tex
 
-    def paintGL(self):
+    def initializeGL(self):
         self.ctx = moderngl.create_context()
-        self.screen = self.ctx.detect_framebuffer()
-        self.init()
-        self.render()
-        self.paintGL = self.render
-
-    def init(self):
-        self.resize(512, 512)
-        self.ctx.viewport = (0, 0, 512, 512)
         self.scene = Scene(self.ctx, self.tex)
-
-    def render(self):
+        
+    def paintGL(self):
+        self.screen = self.ctx.detect_framebuffer()
         self.screen.use()
         self.scene.clear()
         self.scene.plot(vertices)
+
+    def resizeGL(self, width=512, height=512):
+        self.ctx.viewport = (0, 0, width, height)
+        self.scene.prog['FragResolution'] = (width, height)
 
     def wheelEvent(self, event):
         steps = int(event.angleDelta().y() / 8 / 15.0)
