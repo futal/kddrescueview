@@ -320,81 +320,49 @@ class Rescue:
         self.sector_size = self.sector_size or 512
 
     def parse(self, mapfile):
+        '''Parse a ddrescue mapfile'''
+
+        def int_or_str(word):
+            '''Convert string to int if possible'''
+            try: return int(word, 0)
+            except ValueError: return word
+
         with open(mapfile) as file:
             lines = file.readlines()
 
         for n, line in enumerate(lines):
-            line = line.strip()
-            
-            if not line:
-                logging.debug(f'line {n}: empty line')
-                continue
+            data, _, comment = line.partition('#')
+            data = [int_or_str(part) for part in data.split()]
+            comment = comment.strip()
 
-            if self.commandline and line.startswith('# Command line:'):
-                logging.error(f'line {n}: more than one command line')
-                continue
-
-            if line.startswith('# Command line:'):
-                logging.debug(f'line {n}: command line')
-                self.commandline = line
-                match = re.search(r'(-b|--block-size=)\s*(?P<blocksize>[0-9]+)', line)
-                self.sector_size = int(match.group('blocksize')) if match else 512  # TODO: if conversion fails
-                logging.info(f'sector_size = {self.sector_size}')
-                continue
-
-            if line.startswith('#'):
-                logging.debug(f'line {n}: comment line')
-                continue
-
-            parts = line.split()
-
-            if len(parts) == 2 or len(parts) > 2 and parts[2].strip().startswith('#'):
-                try:
-                    position = int(parts[0], 0)
-                    status = parts[1].strip()
-                except:
-                    position = None
-                if position and status in rescue_statuses: 
+            match data, comment:
+                case [], '':
+                    logging.debug(f'{n}: empty line')
+                case _, comment if self.commandline and comment.startswith('Command line:'):
+                    logging.error(f'{n}: more than one command line, skipping')
+                case _, commandline if comment.startswith('Command line:'):
+                    logging.debug(f'{n}: command line')
+                    self.commandline = commandline
+                    match = re.search(r'(-b|--block-size=)\s*(?P<blocksize>[0-9]+)', line)
+                    self.sector_size = int(match.group('blocksize')) if match else 512  # int() should not fail as it's only digits
+                    # TODO: catch impossible sector_size such as 0?
+                    logging.info(f'sector_size = {self.sector_size}')
+                case [], _:
+                    logging.debug(f'{n}: comment line')
+                case [int(position), status], _ if status in rescue_statuses and position >=0:
                     self.position = position
                     self.status = status
-                    logging.debug(f'line {n}: old status line')
-                    continue
-                else:
-                    logging.warning(f'line {n}: incorrect old status line')
-                    continue
-
-            if len(parts) == 3 or len(parts) > 3 and parts[3].strip().startswith('#'):
-                try:  # is it a status line (new format)
-                    start = int(parts[0], 0)
-                    size = int(parts[1], 0)
-                    status = parts[2].strip()
-                except ValueError:
-                    logging.debug(f'line {n}: not a block line')
-                else:
-                    if status not in block_statuses or start < 0 or size <= 0:
-                        logging.error(f'line {n}: incorrect block line ({line})')
-                        continue
-                    logging.debug(f'line {n}: block line')
+                    logging.debug(f'{n}: old status line')
+                case [int(start), int(size), status], _ if status in rescue_statuses and start >= 0 and size > 0:
+                    logging.debug(f'{n}: block line')
                     self.blocks.append(Block(start, size, status))
-                    continue
-
-                try:  # is it a block line
-                    position = int(parts[0], 0)
-                    status = parts[1].strip()
-                    passnumber = int(parts[2], 0)
-                except ValueError:
-                    logging.debug(f'line {n}: not a new rescue status line')
-                else:
-                    if status not in rescue_statuses or position < 0 or passnumber < 1:
-                        logging.error(f'line {n}: incorrect new status line')
-                        continue
-                    logging.debug(f'line {n}: status line (new format)')
+                case [int(position), status, int(passnumber)], _ if status in rescue_statuses and position >=0 and passnumber > 0:
+                    logging.debug(f'{n}: status line (new format)')
                     self.current_position = position
                     self.current_status = status
                     self.current_pass = passnumber
-                    continue
-
-            logging.warning(f'line {n}: invalid line not processed ({line})')
+                case _, _:
+                    logging.warning(f'{n}: invalid line ({line}), skipping')
 
     start = property(lambda self: self.blocks[0].start)
     end = property(lambda self: self.blocks[-1].start + self.blocks[-1].size)
