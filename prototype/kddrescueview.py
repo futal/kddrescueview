@@ -364,6 +364,23 @@ class Rescue:
                 case _, _:
                     logging.warning(f'{n}: invalid line ({line}), skipping')
 
+        # Check that the mapfile blocks are in order and not overlapping
+        blocks = self.blocks.copy()
+        self.blocks = []
+        last_block = None
+        for block in blocks:
+            gap = 0
+            if last_block:
+                gap = block.start - last_block.end
+            if gap < 0:
+                raise ValueError('The blocks overlap')
+            if gap > 0:
+                logging.info(f'Sparse mapfile, adding a block with unknown status')
+                self.blocks.append(Block(last_block.end, gap, ''))
+            self.blocks.append(block)
+            last_block = block
+
+
     start = property(lambda self: self.blocks[0].start)
     end = property(lambda self: self.blocks[-1].start + self.blocks[-1].size)
     size = property(lambda self: self.end - self.start)
