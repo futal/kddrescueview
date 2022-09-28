@@ -1,6 +1,6 @@
 glcontext==2.3.4
 moderngl==5.6.4
-numpy==1.21.3
+numpy==1.22.0
 PyQt5==5.15.5
 PyQt5-Qt5==5.15.2
 PyQt5-sip==12.9.0
