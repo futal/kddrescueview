@@ -388,10 +388,7 @@ class Rescue:
 
 def color(statuses):
     '''computes a pixel bitfield color from rescue block statuses'''
-    statuses = set(statuses)
-    if not statuses:
-        return 0
-    return sum(binary_statuses.get(status, 0) for status in statuses)
+    return sum(binary_statuses.get(status, 0) for status in set(statuses))
 
 
 def texture(rescue):
